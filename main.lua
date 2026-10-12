@@ -97,20 +97,24 @@ powerupHudTextures = {
 --     [POWERUP_WING]      = {bhv = id_bhvWingCap,     model = E_MODEL_MARIOS_WING_CAP},
 -- }
 
-powerupData = {
-    [POWERUP_NONE]      = nil,
-    [POWERUP_METAL]     = {col = {r = 128, g = 128, b = 128}, model = E_MODEL_MARIOS_METAL_CAP    , tex = TEX_POWERUP_METAL , bhv = id_bhvMetalCap},
-    [POWERUP_VANISH]    = {col = nil                        , model = E_MODEL_MARIOS_CAP          , tex = TEX_POWERUP_VANISH, bhv = id_bhvVanishCap},
-    [POWERUP_WING]      = {col = nil                        , model = E_MODEL_MARIOS_WING_CAP     , tex = TEX_POWERUP_WING  , bhv = id_bhvWingCap},
-    [POWERUP_FIRE]      = {col = {r = 255, g = 255, b = 255}, model = E_MODEL_POWERUP_FIREFLOWER  , tex = TEX_POWERUP_FIRE},
-    [POWERUP_ICE]       = {col = {r = 000, g = 170, b = 255}, model = E_MODEL_POWERUP_ICEFLOWER   , tex = TEX_POWERUP_ICE},
-    --[POWERUP_BUBBLE]    = {col = {r = 255, g = 128, b = 255}, model = E_MODEL_POWERUP_BUBBLEFLOWER, tex = TEX_POWERUP_BUBBLE}, -- start of unused
-    --[POWERUP_GOLD]      = {col = {r = 255, g = 200, b =   0}, model = E_MODEL_POWERUP_GOLDFLOWER  , tex = TEX_POWERUP_GOLD},
-    --[POWERUP_CLOUD]     = {col = {r = 255, g = 255, b = 255}, model = E_MODEL_POWERUP_CLOUDFLOWER , tex = TEX_POWERUP_CLOUD},
-    --[POWERUP_PROPELLER] = {col = nil                        , model = E_MODEL_POWERUP_PROPELLERBOX, tex = TEX_POWERUP_PROPELLER},
-    --[POWERUP_SHELL]     = {col = nil                        , model = E_MODEL_POWERUP_BLUESHELL   , tex = TEX_POWERUP_SHELL},
-    --[POWERUP_STAR]      = {col = {r = 000, g = 000, b = 000}, model = E_MODEL_POWERUP_STARMAN     , tex = TEX_POWERUP_STAR},
-}
+powerupData = {}
+
+function add_power_up(item, data)
+    powerupData[item] = data
+end
+
+add_power_up(POWERUP_NONE, nil)
+add_power_up(POWERUP_METAL, {col = {r = 128, g = 128, b = 128}, model = E_MODEL_MARIOS_METAL_CAP, tex = TEX_POWERUP_METAL, bhv = id_bhvMetalCap})
+add_power_up(POWERUP_VANISH, {col = nil, model = E_MODEL_MARIOS_CAP, tex = TEX_POWERUP_VANISH, bhv = id_bhvVanishCap})
+add_power_up(POWERUP_WING, {col = nil, model = E_MODEL_MARIOS_WING_CAP, tex = TEX_POWERUP_WING, bhv = id_bhvWingCap})
+add_power_up(POWERUP_FIRE, {col = {r = 255, g = 255, b = 255}, model = E_MODEL_POWERUP_FIREFLOWER, tex = TEX_POWERUP_FIRE})
+add_power_up(POWERUP_ICE, {col = {r = 000, g = 170, b = 255}, model = E_MODEL_POWERUP_ICEFLOWER, tex = TEX_POWERUP_ICE})
+--add_power_up(POWERUP_BUBBLE, {col = {r = 255, g = 128, b = 255}, model = E_MODEL_POWERUP_BUBBLEFLOWER, tex = TEX_POWERUP_BUBBLE}) start of unused
+--add_power_up(POWERUP_GOLD, {col = {r = 255, g = 200, b = 000}, model = E_MODEL_POWERUP_GOLDFLOWER, tex = TEX_POWERUP_GOLD})
+--add_power_up(POWERUP_CLOUD, {col = {r = 255, g = 255, b = 255}, model = E_MODEL_POWERUP_CLOUDFLOWER, tex = TEX_POWERUP_CLOUD})
+--add_power_up(POWERUP_PROPELLER, {col = nil, model = E_MODEL_POWERUP_PROPELLERBOX, tex = TEX_POWERUP_PROPELLER})
+--add_power_up(POWERUP_SHELL, {col = nil, model = E_MODEL_POWERUP_BLUESHELL, tex = TEX_POWERUP_SHELL})
+--add_power_up(POWERUP_STAR, {col = {r = 000, g = 000, b = 000}, model = E_MODEL_POWERUP_STARMAN, tex = TEX_POWERUP_STAR})
 
 --local MUSIC_POWERUP_STAR = audio_stream_load("jers_powerups_music_star.ogg")
 --local MUSIC_POWERUP_FIRE = audio_stream_load("jers_powerups_music_fire.ogg")
