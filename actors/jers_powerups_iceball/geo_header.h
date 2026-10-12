@@ -1,0 +1,13 @@
+extern const GeoLayout jers_powerups_iceball_geo[];
+extern u8 jers_powerups_iceball_jess_ice_base_rgba16[];
+extern u8 jers_powerups_iceball_iceball_alpha_rgba16[];
+extern Vtx jers_powerups_iceball_Iceball_mesh_layer_1_vtx_0[144];
+extern Gfx jers_powerups_iceball_Iceball_mesh_layer_1_tri_0[];
+extern Vtx jers_powerups_iceball_Iceball_mesh_layer_7_vtx_0[30];
+extern Gfx jers_powerups_iceball_Iceball_mesh_layer_7_tri_0[];
+extern Gfx mat_jers_powerups_iceball_Iceball_Inside[];
+extern Gfx mat_revert_jers_powerups_iceball_Iceball_Inside[];
+extern Gfx mat_jers_powerups_iceball_Iceball_Outside[];
+extern Gfx mat_revert_jers_powerups_iceball_Iceball_Outside[];
+extern Gfx jers_powerups_iceball_Iceball_mesh_layer_1[];
+extern Gfx jers_powerups_iceball_Iceball_mesh_layer_7[];
