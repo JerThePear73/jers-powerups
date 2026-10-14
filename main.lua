@@ -153,7 +153,7 @@ for i = 0, (MAX_PLAYERS - 1) do
         playerG = 0,
         playerB = 0,
         playerCapCol = {r = 0, g = 0, b = 0},
-        powerupStored = POWERUP_ICE,--mod_storage_load_integer("pocket_item", 0),
+        powerupStored = mod_storage_load_integer("pocket_item", 0),
         powerupStartTimer = 0,
         powerupFlags = 0,
         displayPowerup = false,

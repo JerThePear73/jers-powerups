@@ -6,7 +6,7 @@ local function fire_hit_generic(fireball, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED | INT_STATUS_TOUCHED_BOB_OMB-- | ATTACK_FROM_ABOVE
-    spawn_powerup_from_bhv(m, target, 0, 15, fireball.oMoveAngleYaw - 0x8000, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
+    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw - 0x8000, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
     spawn_mist_particles_with_sound(fireballHitSound)
     obj_mark_for_deletion(fireball)
 end
@@ -94,7 +94,7 @@ local function ice_hit_genertic_freeze(iceball, target)
     obj_mark_for_deletion(iceball)
     spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
         cube.oNumLootCoins = 3
-        spawn_powerup_from_bhv(m, target, 0, 0, cube.oFaceAngleYaw, cube, nil)
+        spawn_powerup_from_bhv(m, target, 0, 0, target.oFaceAngleYaw, cube, nil)
         cube.oFaceAngleYaw = target.oFaceAngleYaw
     end)
 end

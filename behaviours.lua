@@ -114,12 +114,12 @@ local function bhv_general_powerup_loop(o)
         o.oTimer = 0
     end
 
-    if obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 then
+    if obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 and o.parentObj.oAction ~= -1 then
         o.oPosX = o.parentObj.oPosX
-        o.oPosY = o.parentObj.oPosY + 40
+        o.oPosY = o.parentObj.oPosY + (50 * o.parentObj.header.gfx.scale.y)
         o.oPosZ = o.parentObj.oPosZ
-        o.oMoveAngleYaw = o.parentObj.oFaceAngleYaw
-        o.oFaceAngleYaw = o.parentObj.parentObj.oMoveAngleYaw
+        o.oMoveAngleYaw = o.parentObj.oMoveAngleYaw
+        o.oFaceAngleYaw = o.parentObj.parentObj.oFaceAngleYaw
         o.oMoveAnglePitch = 0
         o.oMoveAngleRoll = 0
         o.oFaceAnglePitch = 0
@@ -141,15 +141,6 @@ local function bhv_general_powerup_loop(o)
            o.oCapUnkF8 = 0;
            o.oCapUnkF4 = 2;
         end
-    -- elseif o.oCapUnkF4 == 0 then
-    --     local range = 40
-    --     local sparkleX = o.oPosX + math.random(-range, range)
-    --     local sparkleY = o.oPosY + math.random(-range, range)
-    --     local sparkleZ = o.oPosZ + math.random(-range, range)
-    --     local sparkleScale = math.random(1, 8)/10
-    --     spawn_non_sync_object(id_bhvCoinSparkles, E_MODEL_SPARKLES_ANIMATION, sparkleX, sparkleY, sparkleZ, function(sparkle)
-    --         obj_scale(sparkle, sparkleScale)
-    --     end)
     end
 
     obj_flicker_and_disappear(o, powerupDespawnTime)
