@@ -14,6 +14,7 @@ end
 local function mario_update(m)
     local e = gPowerupStates[m.playerIndex]
     local np = gNetworkPlayers[m.playerIndex]
+    local pu = powerupData[e.powerupFlags]
     local isToad = m.character.type == CT_TOAD
     local mario_is_fire_or_ice = (e.powerupFlags == POWERUP_FIRE) or (e.powerupFlags == POWERUP_ICE)
 
@@ -27,13 +28,13 @@ local function mario_update(m)
         if e.powerupFlags == POWERUP_VANISH then
             m.marioBodyState.modelState = m.marioBodyState.modelState & ~MODEL_STATE_NOISE_ALPHA
         end
-    elseif e.powerupFlags ~= nil then
+    elseif e.powerupFlags then
         if m.flags & MARIO_METAL_CAP ~= 0 and m.marioBodyState.modelState & MODEL_STATE_METAL ~= 0 then
-            network_player_set_override_palette_color(np, CAP, {r = 128, g = 128, b =128})
+            network_player_set_override_palette_color(np, CAP, powerupData[POWERUP_METAL].col)
         elseif (e.powerupFlags > 0 and e.powerupFlags < 4) then
-            if powerupData[e.powerupFlags] ~= nil then
+            if pu and pu.col then
                 if isToad then -- i hate this little bitch for his palette slots
-                    local toadCol = powerupData[e.powerupFlags].col
+                    local toadCol = pu.col[CAP]
                     if e.powerupFlags == POWERUP_FIRE then
                         toadCol = {r = 255, g = 0, b = 0}
                         if (e.playerCapCol.r == 255 and e.playerCapCol.g == 0 and e.playerCapCol.b == 0) then
@@ -43,11 +44,15 @@ local function mario_update(m)
                     network_player_set_override_palette_color(np, CAP, toadCol)
                     network_player_set_override_palette_color(np, SHIRT, toadCol)
                     network_player_set_override_palette_color(np, GLOVES, e.playerCapCol)
+                    network_player_set_override_palette_color(np, PANTS, e.playerCapCol)
                 else
-                    network_player_set_override_palette_color(np, CAP, powerupData[e.powerupFlags].col)
-                    network_player_set_override_palette_color(np, SHIRT, powerupData[e.powerupFlags].col)
+                    for i = 0, PLAYER_PART_MAX - 1 do
+                        local colToUse = (pu.col[i] == -1 and e.playerCapCol) or pu.col[i]
+                        if pu.col[i] then
+                            network_player_set_override_palette_color(np, i, colToUse)
+                        end
+                    end
                 end
-                network_player_set_override_palette_color(np, PANTS, e.playerCapCol)
             end
         end
     end
@@ -60,21 +65,35 @@ local function mario_update(m)
         --         m.marioBodyState.modelState = m.marioBodyState.modelState & ~MODEL_STATE_NOISE_ALPHA
         --     end
         -- else
-        if m.capTimer < 1 and gNetworkPlayers[0].currActNum ~= 99 then
+        
+        if charSelectExists and charSelect.is_menu_open() then
+            e.displayPowerup = false
+            if e.CSmenuCheck then
+                network_player_reset_override_palette(np)
+                e.CSmenuCheck = false
+            end
+        elseif m.capTimer < 1 and gNetworkPlayers[0].currActNum ~= 99 then
             network_player_reset_override_palette(np)
             spawn_mist_particles_with_sound(SOUND_MENU_ENTER_PIPE)
             if e.displayPowerup then
                 e.displayPowerup = false
             end
             e.powerupFlags = 0
-        elseif (e.powerupStartTimer > 0 or m.capTimer < 90) and (m.capTimer % frameSkip) == 0 then
+        elseif (e.powerupStartTimer > 0 or (m.capTimer < 90 and (m.flags & MARIO_WING_CAP == 0 or m.flags & MARIO_METAL_CAP ~= 0))) and (m.capTimer % frameSkip) == 0 then
             network_player_reset_override_palette(np)
             e.displayPowerup = false
+        elseif e.prevCharType ~= m.character.type then
+            network_player_reset_override_palette(np)
+            e.displayPowerup = false
+            e.prevCharType = m.character.type
         else
             e.displayPowerup = true
         end
         if e.powerupStartTimer > 0 then
             e.powerupStartTimer = e.powerupStartTimer - 1
+        end
+        if charSelectExists and not charSelect.is_menu_open() then
+            e.CSmenuCheck = true
         end
     end
 
@@ -107,7 +126,7 @@ local function mario_update(m)
     --     spawn_non_sync_object(id_bhvMistParticleSpawner, E_MODEL_NONE, torsoPos.x, torsoPos.y - 20, torsoPos.z, nil)
     -- end
 
-    if m.controller.buttonPressed & Y_BUTTON ~= 0 and m.playerIndex == 0 and e.powerupStored ~= 0 and e.powerupStored ~= nil then
+    if m.controller.buttonPressed & Y_BUTTON ~= 0 and m.playerIndex == 0 and e.powerupStored ~= 0 and e.powerupStored ~= nil and m.action & ACT_GROUP_CUTSCENE == 0 then
         local spawnBhv = 0
         local spawnModel = E_MODEL_NONE
         if e.powerupStored < 0 then
@@ -224,10 +243,37 @@ local function on_sound(id)
 
     if id == SOUND_MENU_STAR_SOUND and replaceStarSound ~= 0 and gNetworkPlayers[0].currActNum ~= 99 and m.action ~= ACT_JUMBO_STAR_CUTSCENE then
         if replaceStarSound == 2 then
+            replaceStarSound = 0
             return NO_SOUND
         elseif replaceStarSound == 1 then
+            replaceStarSound = 0
             return SOUND_MENU_EXIT_PIPE
         end
     end
 end
 hook_event(HOOK_ON_PLAY_SOUND, on_sound)
+
+function hazard_surface(m)
+    if m.flags & MARIO_VANISH_CAP ~= 0 then
+        return false
+    end
+end
+hook_event(HOOK_ALLOW_HAZARD_SURFACE, hazard_surface)
+
+if charSelectExists then
+    charSelect.hook_on_character_change(function()
+        local m = gMarioStates[0]
+        local e = gPowerupStates[m.playerIndex]
+        e.prevCharType = -1
+
+        -- local char = characterColorPresets[obj_get_model_id_extended(m)]
+        -- local fireCheck = ("Fire" | "Fire Flower")
+
+        -- for i = 0, #char.palette do
+        --     if char.palette.name & fireCheck ~= 0 then
+        --         e.csOverridePalette.fire = char.presetPalette
+        --         return
+        --     end
+        -- end
+    end)
+end

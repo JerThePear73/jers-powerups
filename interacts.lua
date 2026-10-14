@@ -63,18 +63,6 @@ local function fire_hit_bully(fireball, target)
     obj_mark_for_deletion(fireball)
 end
 
-local function fire_hit_box(fireball, target)
-    for i=0, 2 do
-        spawn_non_sync_object(id_bhvSingleCoinGetsSpawned, E_MODEL_YELLOW_COIN, target.oPosX, target.oPosY, target.oPosZ, function(coin)
-        coin.oMoveAngleYaw = math.random(0, 0x10000)
-        end)
-    end
-    play_sound(SOUND_GENERAL_BREAK_BOX, target.header.gfx.cameraToObject)
-    obj_mark_for_deletion(target)
-    spawn_mist_particles_with_sound(fireballHitSound)
-    obj_mark_for_deletion(fireball)
-end
-
 local function fire_hit_bowser(fireball, target)
     local oBowser = target.parentObj
     if oBowser.oAction ~= 19 and oBowser.oAction ~= 4 and oBowser.oAction ~= 12 then
@@ -105,6 +93,7 @@ local function ice_hit_genertic_freeze(iceball, target)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     obj_mark_for_deletion(iceball)
     spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
+        cube.oNumLootCoins = 3
         spawn_powerup_from_bhv(m, target, 0, 0, cube.oFaceAngleYaw, cube, nil)
         cube.oFaceAngleYaw = target.oFaceAngleYaw
     end)
@@ -113,8 +102,9 @@ local function ice_hit_goomba_freeze(iceball, target)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     obj_mark_for_deletion(iceball)
     spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
+        cube.oNumLootCoins = 3
         cube.oMoveAngleYaw = target.oMoveAngleYaw
-        obj_scale(cube, target.header.gfx.scale.y*0.5)
+        obj_scale(cube, target.header.gfx.scale.y*0.7)
     end)
 
     spawn_non_sync_object(id_bhvSingleCoinGetsSpawned, E_MODEL_YELLOW_COIN, target.oPosX, target.oPosY, target.oPosZ, nil)
@@ -126,6 +116,7 @@ local function ice_hit_bobomb_freeze(iceball, target)
         obj_spawn_yellow_coins(target, 1)
     end
     spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
+        cube.oNumLootCoins = 3
         cube.oMoveAngleYaw = target.oMoveAngleYaw
     end)
     obj_mark_for_deletion(target)
@@ -134,6 +125,7 @@ local function ice_hit_bluecoin_freeze(iceball, target)
     target.oInteractStatus = target.oInteractStatus | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     obj_mark_for_deletion(iceball)
     spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
+        cube.oNumLootCoins = 3
         cube.oMoveAngleYaw = target.oMoveAngleYaw
     end)
 
@@ -175,9 +167,9 @@ projectileHitInteracts = {
     [id_bhvHeaveHo]             = {fire = fire_hit_heaveho,     ice = ice_hit_bluecoin_freeze},
     [id_bhvMrI]                 = {fire = fire_hit_eyeball,     ice = fire_hit_stop},
     [id_bhvBreakableBox]        = {fire = fire_hit_generic,     ice = nil},
-    [id_bhvBreakableBoxSmall]   = {fire = fire_hit_box,         ice = nil},
+    [id_bhvBreakableBoxSmall]   = {fire = fire_hit_generic,         ice = nil},
     [id_bhvHauntedChair]        = {fire = fire_hit_generic,     ice = ice_hit_bluecoin_freeze},
     [id_bhvBowserBodyAnchor]    = {fire = fire_hit_bowser,      ice = fire_hit_stop},
     [id_bhvChuckya]             = {fire = fire_hit_stop,        ice = fire_hit_stop},
-    [id_bhvIceCube]             = {fire = fire_hit_box,         ice = nil},
+    [id_bhvIceCube]             = {fire = fire_hit_generic,         ice = nil},
 }

@@ -114,6 +114,23 @@ local function bhv_general_powerup_loop(o)
         o.oTimer = 0
     end
 
+    if obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 then
+        o.oPosX = o.parentObj.oPosX
+        o.oPosY = o.parentObj.oPosY + 40
+        o.oPosZ = o.parentObj.oPosZ
+        o.oMoveAngleYaw = o.parentObj.oFaceAngleYaw
+        o.oFaceAngleYaw = o.parentObj.parentObj.oMoveAngleYaw
+        o.oMoveAnglePitch = 0
+        o.oMoveAngleRoll = 0
+        o.oFaceAnglePitch = 0
+        o.oFaceAngleRoll = 0
+        o.oVelX = 0
+        o.oVelY = 0
+        o.oVelZ = 0
+        o.oForwardVel = 0
+        o.oTimer = 0
+    end
+
     o.oFaceAnglePitch = 0
     o.oFaceAngleRoll = 0
 
@@ -247,17 +264,15 @@ id_bhvFireOrIceball = hook_behavior(nil, OBJ_LIST_GENACTOR, true, bhv_projectile
 
 ---@param o Object
 local function bhv_icecube_init(o)
-    local hitboxSize = 300
     local scaleOffset = o.header.gfx.scale.y * 0.9
     o.oFlags = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
-    --o.activeFlags = o.activeFlags | ACTIVE_FLAG_UNK9
+    o.activeFlags = ACTIVE_FLAG_ACTIVE
     o.oGraphYOffset         = 0
     o.oGravity              = 0
     o.oBounciness           = 0
     o.oDragStrength         = 0
     o.oFriction             = 0
     o.oBuoyancy             = 0
-    o.oDamageOrCoinValue    = 0
     o.oTimer                = 0
     o.collisionData         = gGlobalObjectCollisionData.breakable_box_seg8_collision_08012D70
     o.oCollisionDistance    = 600
@@ -266,43 +281,42 @@ local function bhv_icecube_init(o)
     o.header.gfx.scale.x    = scaleOffset
     o.header.gfx.scale.y    = scaleOffset
     o.header.gfx.scale.z    = scaleOffset
-    o.oCapUnkF4             = o.oPosY
-    o.hitboxRadius          = hitboxSize/2
-    o.hitboxHeight          = hitboxSize
-    o.hurtboxRadius         = hitboxSize/2
-    o.hurtboxHeight         = hitboxSize
+    o.oInteractType         = INTERACT_BREAKABLE
+    o.oHealth               = 1
+    o.hitboxRadius          = 150 -- not scaling this with obj scale makes it so you can't punch or kick a big cube, must GP or fireball it
+    o.hitboxHeight          = 200
+    o.hurtboxRadius         = 150
+    o.hurtboxHeight         = 200
+    o.oAction               = 0
     cur_obj_become_tangible()
     obj_set_model_extended(o, E_MODEL_POWERUP_ICECUBE)
     spawn_mist_particles_with_sound(SOUND_OBJ_BIG_PENGUIN_WALK)
     spawn_mist_particles_with_sound(SOUND_OBJ_BIG_PENGUIN_WALK)
+
+    spawn_visual_coins(o)
 end
 local function bhv_icecube_loop(o)
     local icecubeDurr = iceballLifetime * 4 -- 3
     load_object_collision_model()
 
-    if cur_obj_was_attacked_or_ground_pounded() ~= 0 or o.oTimer >= icecubeDurr then
+    if cur_obj_was_attacked_or_ground_pounded() ~= 0 then
+        o.oInteractStatus = o.oInteractStatus | INT_STATUS_WAS_ATTACKED
+    elseif o.oTimer >= icecubeDurr then
+        o.oAction = -1
+    end
+    if o.oInteractStatus == INT_STATUS_WAS_ATTACKED then
+        o.oAction = -1
+    end
+
+    if o.oAction == -1 then
         play_sound_with_freq_scale(SOUND_GENERAL2_BOBOMB_EXPLOSION, o.header.gfx.cameraToObject, 10)
         spawn_triangle_break_particles(10, 139, 0.3, 2)
-        if cur_obj_was_attacked_or_ground_pounded() ~= 0 then
-            obj_spawn_yellow_coins(o, 3)
+        if o.oTimer < icecubeDurr and o.oNumLootCoins == 3 then
+            obj_spawn_loot_yellow_coins(o, 3, 0)
         end
-        obj_mark_for_deletion(o)
+        o.activeFlags = ACTIVE_FLAG_DEACTIVATED
     end
-    if o.parentObj ~= nil then
-        o.parentObj.oPosX = o.oPosX
-        o.parentObj.oPosY = o.oPosY + 40
-        o.parentObj.oPosZ = o.oPosZ
-        o.parentObj.oVelX = 0
-        o.parentObj.oVelY = 0
-        o.parentObj.oVelZ = 0
-        o.parentObj.oForwardVel = 0
-        o.parentObj.oMoveAnglePitch = 0
-        o.parentObj.oMoveAngleRoll = 0
-        o.parentObj.oFaceAnglePitch = 0
-        o.parentObj.oFaceAngleRoll = 0
-        o.parentObj.oMoveAngleYaw = o.oFaceAngleYaw
-        o.parentObj.oFaceAngleYaw = o.parentObj.oMoveAngleYaw
-    end
+
     if o.oTimer > icecubeDurr - 30 then
         if o.oTimer % 3 == 0 then
             cur_obj_hide()
@@ -310,9 +324,41 @@ local function bhv_icecube_loop(o)
             cur_obj_unhide()
         end
     end
-    o.oPosY = o.oCapUnkF4
+
+    if o.activeFlags == ACTIVE_FLAG_DEACTIVATED then
+        o.oNumLootCoins = 0
+        obj_mark_for_deletion(o)
+    end
 end
 id_bhvIceCube = hook_behavior(nil, OBJ_LIST_SURFACE, true, bhv_icecube_init, bhv_icecube_loop, "bhvIceCube")
+
+local function bhv_visual_coins_init(o)
+    o.oFlags = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+    o.oAnimState = 0
+    cur_obj_become_intangible()
+    obj_set_billboard(o)
+end
+local function bhv_visual_coins_loop(o)
+    local coinLayout = {
+        {x = o.parentObj.oPosX,         y = o.parentObj.oPosY + ((o.parentObj.hitboxHeight * o.parentObj.header.gfx.scale.y)/2 - 100),  z = o.parentObj.oPosZ},
+        {x = o.parentObj.oPosX - 30,    y = o.parentObj.oPosY + ((o.parentObj.hitboxHeight * o.parentObj.header.gfx.scale.y)/2 - 10),   z = o.parentObj.oPosZ - 30},
+        {x = o.parentObj.oPosX + 30,    y = o.parentObj.oPosY + ((o.parentObj.hitboxHeight * o.parentObj.header.gfx.scale.y)/2 - 10),   z = o.parentObj.oPosZ + 30},
+    }
+    o.oAnimState = o.oAnimState + 1
+    if o.parentObj then
+        o.oPosX = coinLayout[o.oBehParams].x
+        o.oPosY = coinLayout[o.oBehParams].y
+        o.oPosZ = coinLayout[o.oBehParams].z
+        if o.parentObj.oNumLootCoins == 0 or o.parentObj.header.gfx.scale.y < 0.5 then
+            obj_mark_for_deletion(o)
+        end
+    end
+end
+id_bhvVisualCoins = hook_behavior(nil, OBJ_LIST_UNIMPORTANT, true, bhv_visual_coins_init, bhv_visual_coins_loop, "bhvVisualCoins")
+
+------------------------
+-- VANILLA BEHAVIOURS --
+------------------------
 
 local function bhv_powerup_snowman_loop(o)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)

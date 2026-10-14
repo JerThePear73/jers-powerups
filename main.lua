@@ -46,6 +46,7 @@ fireballLifetime = 100
 iceballLifetime = 60
 powerupTime = 45
 replaceStarSound = 0
+capCol = -1
 --gLevelValues.hudCapTimer = 1
 
 -- paletteColOverrides = {
@@ -104,11 +105,33 @@ function add_power_up(item, data)
 end
 
 add_power_up(POWERUP_NONE, nil)
-add_power_up(POWERUP_METAL, {col = {r = 128, g = 128, b = 128}, model = E_MODEL_MARIOS_METAL_CAP, tex = TEX_POWERUP_METAL, bhv = id_bhvMetalCap})
-add_power_up(POWERUP_VANISH, {col = nil, model = E_MODEL_MARIOS_CAP, tex = TEX_POWERUP_VANISH, bhv = id_bhvVanishCap})
-add_power_up(POWERUP_WING, {col = nil, model = E_MODEL_MARIOS_WING_CAP, tex = TEX_POWERUP_WING, bhv = id_bhvWingCap})
-add_power_up(POWERUP_FIRE, {col = {r = 255, g = 255, b = 255}, model = E_MODEL_POWERUP_FIREFLOWER, tex = TEX_POWERUP_FIRE})
-add_power_up(POWERUP_ICE, {col = {r = 000, g = 170, b = 255}, model = E_MODEL_POWERUP_ICEFLOWER, tex = TEX_POWERUP_ICE})
+add_power_up(POWERUP_METAL, {model = E_MODEL_MARIOS_METAL_CAP, tex = TEX_POWERUP_METAL, bhv = id_bhvMetalCap,
+    col = {r = 128, g = 128, b = 128}
+})
+add_power_up(POWERUP_VANISH, {model = E_MODEL_MARIOS_CAP, tex = TEX_POWERUP_VANISH, bhv = id_bhvVanishCap})
+add_power_up(POWERUP_WING,   {model = E_MODEL_MARIOS_WING_CAP, tex = TEX_POWERUP_WING, bhv = id_bhvWingCap})
+add_power_up(POWERUP_FIRE,   {model = E_MODEL_POWERUP_FIREFLOWER, tex = TEX_POWERUP_FIRE,
+    col = {
+    [PANTS]     = capCol,
+    [SHIRT]     = {r = 255, g = 255, b = 255},
+    [GLOVES]    = nil,
+    [SHOES]     = nil,
+    [HAIR]      = nil,
+    [SKIN]      = nil,
+    [CAP]       = {r = 255, g = 255, b = 255},
+    [EMBLEM]    = nil,
+}})
+add_power_up(POWERUP_ICE,    {model = E_MODEL_POWERUP_ICEFLOWER, tex = TEX_POWERUP_ICE,
+    col = {
+    [PANTS]     = capCol,
+    [SHIRT]     = {r = 000, g = 170, b = 255},
+    [GLOVES]    = nil,
+    [SHOES]     = nil,
+    [HAIR]      = nil,
+    [SKIN]      = nil,
+    [CAP]       = {r = 000, g = 170, b = 255},
+    [EMBLEM]    = nil,
+}})
 --add_power_up(POWERUP_BUBBLE, {col = {r = 255, g = 128, b = 255}, model = E_MODEL_POWERUP_BUBBLEFLOWER, tex = TEX_POWERUP_BUBBLE}) start of unused
 --add_power_up(POWERUP_GOLD, {col = {r = 255, g = 200, b = 000}, model = E_MODEL_POWERUP_GOLDFLOWER, tex = TEX_POWERUP_GOLD})
 --add_power_up(POWERUP_CLOUD, {col = {r = 255, g = 255, b = 255}, model = E_MODEL_POWERUP_CLOUDFLOWER, tex = TEX_POWERUP_CLOUD})
@@ -130,7 +153,7 @@ for i = 0, (MAX_PLAYERS - 1) do
         playerG = 0,
         playerB = 0,
         playerCapCol = {r = 0, g = 0, b = 0},
-        powerupStored = mod_storage_load_integer("pocket_item", 0),
+        powerupStored = POWERUP_ICE,--mod_storage_load_integer("pocket_item", 0),
         powerupStartTimer = 0,
         powerupFlags = 0,
         displayPowerup = false,
@@ -140,6 +163,13 @@ for i = 0, (MAX_PLAYERS - 1) do
         hudDance = 0,
         capTimerSaved = 20*30,
         overrideCapTimer = false,
+        prevCharType = 0,
+        CSoverridePalette = {
+            fire = nil,
+            ice = nil,
+            bubble = nil,
+        },
+        CSmenuCheck = true,
     }
     --gPlayerSyncTable[i].
 end
@@ -193,8 +223,10 @@ function spawn_powerup_from_bhv(m, o, velX, velY, angle, parent, sound)
                         spawn_mist_particles_with_sound(sound)
                     end
                     if parent ~= nil then
-                        parent.parentObj = pu
+                        pu.parentObj = parent
+                        pu.oPosY = parent.oPosY + 40
                         pu.oCapUnkF4 = 2
+                        parent.oNumLootCoins = 0
                     end
                 end)
             end
@@ -220,6 +252,16 @@ function spawn_powerup_manual(x, y, z, velX, velY, angle, type, sound)
             spawn_mist_particles_with_sound(sound)
         end
     end)
+end
+
+---@param parent Object
+function spawn_visual_coins(parent)
+    for i=1, 3 do
+        spawn_sync_object(id_bhvVisualCoins, E_MODEL_YELLOW_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
+            coins.parentObj = parent
+            coins.oBehParams = i
+        end)
+    end
 end
 
 local function reset_on_warp()
