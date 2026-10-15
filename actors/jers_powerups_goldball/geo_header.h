@@ -1,0 +1,12 @@
+extern const GeoLayout jers_powerups_goldball_geo[];
+extern u8 jers_powerups_goldball_fireball_alpha_rgba16[];
+extern Vtx jers_powerups_goldball_Goldball_mesh_layer_1_vtx_0[26];
+extern Gfx jers_powerups_goldball_Goldball_mesh_layer_1_tri_0[];
+extern Vtx jers_powerups_goldball_Goldball_mesh_layer_5_vtx_0[30];
+extern Gfx jers_powerups_goldball_Goldball_mesh_layer_5_tri_0[];
+extern Gfx mat_jers_powerups_goldball_Fireball_Inside[];
+extern Gfx mat_revert_jers_powerups_goldball_Fireball_Inside[];
+extern Gfx mat_jers_powerups_goldball_Goldball_Outside[];
+extern Gfx mat_revert_jers_powerups_goldball_Goldball_Outside[];
+extern Gfx jers_powerups_goldball_Goldball_mesh_layer_1[];
+extern Gfx jers_powerups_goldball_Goldball_mesh_layer_5[];

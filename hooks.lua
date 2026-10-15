@@ -11,12 +11,20 @@ local function spawn_fire_or_ice_ball(m, beh)
     end)
 end
 
+---@param m MarioState
+local function spawn_bubble_projectile(m)
+    if m.playerIndex ~= 0 then return end
+    spawn_sync_object(id_bhvPowerupBubble, E_MODEL_NONE, m.pos.x, m.pos.y + 50, m.pos.z, function(o)
+        o.oMoveAngleYaw = m.faceAngle.y
+    end)
+end
+
 local function mario_update(m)
     local e = gPowerupStates[m.playerIndex]
     local np = gNetworkPlayers[m.playerIndex]
     local pu = powerupData[e.powerupFlags]
     local isToad = m.character.type == CT_TOAD
-    local mario_is_fire_or_ice = (e.powerupFlags == POWERUP_FIRE) or (e.powerupFlags == POWERUP_ICE)
+    local mario_powerup_throw_type = (e.powerupFlags >= 1 and e.powerupFlags <= 4)
 
     if not e.displayPowerup then
         if e.playerCapCol ~= network_player_get_override_palette_color(np, CAP) then
@@ -97,17 +105,25 @@ local function mario_update(m)
         end
     end
 
-    if mario_is_fire_or_ice and m.actionArg == 70 and m.capTimer > 5 then
+    if mario_powerup_throw_type and m.actionArg == 70 and m.capTimer > 5 then
         if m.action == ACT_AIR_THROW then
             if m.actionTimer == 2 then
-                spawn_fire_or_ice_ball(m, e.powerupFlags - 1)
+                if e.powerupFlags == POWERUP_FIRE or e.powerupFlags == POWERUP_ICE then
+                    spawn_fire_or_ice_ball(m, e.powerupFlags - 1)
+                elseif e.powerupFlags == POWERUP_BUBBLE then
+                    spawn_bubble_projectile(m)
+                end
             end
             if (m.pos.y - m.floorHeight) < (m.vel.y * -1) + 1 and m.vel.y < 0 then
                 set_mario_action(m, ACT_FREEFALL_LAND, 0)
             end
         elseif m.action == ACT_THROWING then
             if m.actionTimer == 6 then
-                spawn_fire_or_ice_ball(m, e.powerupFlags - 1)
+                if e.powerupFlags == POWERUP_FIRE or e.powerupFlags == POWERUP_ICE then
+                    spawn_fire_or_ice_ball(m, e.powerupFlags - 1)
+                elseif e.powerupFlags == POWERUP_BUBBLE then
+                    spawn_bubble_projectile(m)
+                end
             end
         end
 
@@ -150,9 +166,9 @@ hook_event(HOOK_MARIO_UPDATE, mario_update)
 
 local function mario_set_action(m)
     local e = gPowerupStates[m.playerIndex]
-    local mario_is_fire_or_ice = (e.powerupFlags == POWERUP_FIRE) or (e.powerupFlags == POWERUP_ICE)
+    local mario_powerup_throw_type = (e.powerupFlags >= 1 and e.powerupFlags <= 4)
 
-    if m.actionArg == 70 and mario_is_fire_or_ice then
+    if m.actionArg == 70 and mario_powerup_throw_type then
         if m.action == ACT_AIR_THROW then
             m.vel.y = 30
             set_anim_to_frame(m, 0)
@@ -164,9 +180,9 @@ hook_event(HOOK_ON_SET_MARIO_ACTION, mario_set_action)
 
 local function mario_before_set_action(m, act)
     local e = gPowerupStates[m.playerIndex]
-    local mario_is_fire_or_ice = (e.powerupFlags == POWERUP_FIRE) or (e.powerupFlags == POWERUP_ICE)
+    local mario_powerup_throw_type = (e.powerupFlags >= 1 and e.powerupFlags <= 4)
 
-    if mario_is_fire_or_ice and (act == ACT_JUMP_KICK or (act == ACT_MOVE_PUNCHING and m.input & INPUT_NONZERO_ANALOG ~= 0)) then
+    if mario_powerup_throw_type and (act == ACT_JUMP_KICK or (act == ACT_MOVE_PUNCHING and m.input & INPUT_NONZERO_ANALOG ~= 0)) then
         m.faceAngle.y = m.intendedYaw
         m.forwardVel = m.forwardVel * 0.8
         if act == ACT_JUMP_KICK then
@@ -212,7 +228,7 @@ local function mario_interact(m, o, type)
     end
 
     if (o.oInteractStatus & INT_STATUS_WAS_ATTACKED ~= 0 and m.action ~= ACT_TWIRLING) then
-        spawn_powerup_from_bhv(m, o, -5, 15, o.oFaceAngleYaw, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
+        spawn_powerup_from_bhv(m, o, 0, 15, o.oFaceAngleYaw, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
     end
 end
 hook_event(HOOK_ON_INTERACT, mario_interact)

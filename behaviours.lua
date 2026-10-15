@@ -114,9 +114,15 @@ local function bhv_general_powerup_loop(o)
         o.oTimer = 0
     end
 
-    if obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 and o.parentObj.oAction ~= -1 then
+    if o.parentObj.oAction ~= -1 and
+    (obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 or
+    obj_has_behavior_id(o.parentObj, id_bhvPowerupBubble) ~= 0) then
+        if obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 then
+            o.oPosY = o.parentObj.oPosY + (50 * o.parentObj.header.gfx.scale.y)
+        elseif obj_has_behavior_id(o.parentObj, id_bhvPowerupBubble) ~= 0 then
+            o.oPosY = o.parentObj.oPosY  + (10 * o.parentObj.header.gfx.scale.y)
+        end
         o.oPosX = o.parentObj.oPosX
-        o.oPosY = o.parentObj.oPosY + (50 * o.parentObj.header.gfx.scale.y)
         o.oPosZ = o.parentObj.oPosZ
         o.oMoveAngleYaw = o.parentObj.oMoveAngleYaw
         o.oFaceAngleYaw = o.parentObj.parentObj.oFaceAngleYaw
@@ -145,7 +151,7 @@ local function bhv_general_powerup_loop(o)
 
     obj_flicker_and_disappear(o, powerupDespawnTime)
 
-    if obj_check_hitbox_overlap(nearestMarioObject, o) then
+    if obj_check_hitbox_overlap(m.marioObj, o) then
         if o.oBehParams ~= nil then
             if e.powerupFlags == o.oBehParams then --and e.powerupStored ~= o.oBehParams then -- this doesn't sync properly for some reason so for now custom powerups will just always be stored.
                 store_powerup(m, o.oBehParams)
@@ -323,6 +329,111 @@ local function bhv_icecube_loop(o)
 end
 id_bhvIceCube = hook_behavior(nil, OBJ_LIST_SURFACE, true, bhv_icecube_init, bhv_icecube_loop, "bhvIceCube")
 
+---@param o Object
+local function bhv_powerup_bubble_init(o)
+    local hitboxSize = 120
+    o.oFlags                = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+    o.activeFlags           = o.activeFlags | ACTIVE_FLAG_UNK9
+    o.oGraphYOffset         = 0
+    o.oGravity              = -0.1
+    o.oBounciness           = 2
+    o.oDragStrength         = 0
+    o.oFriction             = 0.1
+    o.oBuoyancy             = -3
+    o.oTimer                = 0
+    o.oMoveAngleRoll        = 0
+    o.oMoveAnglePitch       = 0
+    o.hitboxDownOffset      = hitboxSize/2
+    o.hitboxRadius          = hitboxSize * 0.75
+    o.hitboxHeight          = hitboxSize
+    o.hurtboxRadius         = hitboxSize * 0.75
+    o.hurtboxHeight         = hitboxSize
+    o.oAction               = 0
+    o.oForwardVel           = 0
+    o.oVelY                 = 0
+    o.oNumLootCoins         = 0
+    o.oCapUnkF4             = 0
+    obj_set_billboard(o)
+    obj_set_model_extended(o, E_MODEL_BUBBLE)
+    --cur_obj_play_sound_1(SOUND_ACTION_SWIM)
+    play_sound_with_freq_scale(SOUND_OBJ_DEFAULT_DEATH, o.header.gfx.cameraToObject, 1.5)
+    cur_obj_become_tangible()
+end
+local function bhv_powerup_bubble_loop(o)
+    local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
+    local m = get_mario_state_from_object(nearestMarioObject)
+    local bubbleScale = math.clamp(o.oCapUnkF4/2, 0, o.oAction == 0 and 7 or 8)
+    local bubbleSpeed = math.clamp(40 - o.oCapUnkF4, 5, 100)
+
+    local step = object_step_without_floor_orient()
+    if step & OBJ_COL_FLAG_HIT_WALL ~= 0 and o.oTimer > 13 then
+        o.oAction = -1
+    end
+
+    local targetDist = 0x20000
+    for key, hit_effect in pairs(projectileHitInteracts) do
+        local hitObj = cur_obj_nearest_object_with_behavior(get_behavior_from_id(key))
+        if hitObj ~= nil then
+            if projectileHitInteracts[key] ~= nil then
+                local dist = dist_between_objects(o, hitObj)
+                if dist < targetDist then
+                    targetDist = dist
+                end
+                if obj_check_hitbox_overlap(o, hitObj) and projectileHitInteracts[key].bubble and o.oAction ~= 1 then
+                    hit_effect.bubble(o, hitObj)
+                    o.oAction = 1
+                end
+            end
+        end
+    end
+
+    if o.oAction == -1 then
+        play_sound_with_freq_scale(SOUND_OBJ_DEFAULT_DEATH, o.header.gfx.cameraToObject, -1.5)
+        spawn_mist_particles_variable(10, 50, 10)
+        if o.oNumLootCoins == 3 then
+            obj_spawn_loot_yellow_coins(o, 3, 0)
+        elseif o.oNumLootCoins == 5 then
+            spawn_non_sync_object(id_bhvMrIBlueCoin, E_MODEL_BLUE_COIN, o.oPosX, o.oPosY, o.oPosZ, nil)
+        end
+        o.oNumLootCoins = 0
+        o.activeFlags = ACTIVE_FLAG_DEACTIVATED
+    elseif o.oTimer > 15 and m.vel.y < 10 then
+        if obj_check_hitbox_overlap(m.marioObj, o) then
+            if m.action == ACT_DOUBLE_JUMP then
+                set_mario_action(m, ACT_TRIPLE_JUMP, 0)
+            elseif m.action == ACT_JUMP or m.action == ACT_SIDE_FLIP or m.action == ACT_FREEFALL or m.action == ACT_WALL_KICK_AIR then
+                set_mario_action(m, ACT_DOUBLE_JUMP, 0)
+            elseif m.action & ACT_FLAG_AIR ~= 0 then
+                set_mario_action(m, ACT_JUMP, 0)
+            end
+            o.oAction = -1
+        end
+    end
+
+    if o.oTimer > bubbleLifetime then
+        o.oAction = -1
+    else
+        if o.oTimer > bubbleLifetime - 30 then
+            if o.oTimer % 3 == 0 then
+                cur_obj_hide()
+            else
+                cur_obj_unhide()
+            end
+        end
+    end
+
+    if o.activeFlags == ACTIVE_FLAG_DEACTIVATED then
+        obj_mark_for_deletion(o)
+    end
+
+    o.oCapUnkF4 = o.oCapUnkF4 + 1
+    o.oForwardVel = bubbleSpeed
+
+    obj_scale(o, bubbleScale)
+end
+id_bhvPowerupBubble = hook_behavior(nil, OBJ_LIST_GENACTOR, true, bhv_powerup_bubble_init, bhv_powerup_bubble_loop, "bhvPowerupBubble")
+
+---@param o Object
 local function bhv_visual_coins_init(o)
     o.oFlags = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
     o.oAnimState = 0
@@ -330,10 +441,13 @@ local function bhv_visual_coins_init(o)
     obj_set_billboard(o)
 end
 local function bhv_visual_coins_loop(o)
+    local offset1 = math.sin(o.oTimer * 0.1) * 40
+    local offset2 = math.cos(o.oTimer * 0.1) * 40
+    local offsetY = (o.parentObj and obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0) and (o.parentObj.hitboxHeight * o.parentObj.header.gfx.scale.y)/2 or 150
     local coinLayout = {
-        {x = o.parentObj.oPosX,         y = o.parentObj.oPosY + ((o.parentObj.hitboxHeight * o.parentObj.header.gfx.scale.y)/2 - 100),  z = o.parentObj.oPosZ},
-        {x = o.parentObj.oPosX - 30,    y = o.parentObj.oPosY + ((o.parentObj.hitboxHeight * o.parentObj.header.gfx.scale.y)/2 - 10),   z = o.parentObj.oPosZ - 30},
-        {x = o.parentObj.oPosX + 30,    y = o.parentObj.oPosY + ((o.parentObj.hitboxHeight * o.parentObj.header.gfx.scale.y)/2 - 10),   z = o.parentObj.oPosZ + 30},
+        {x = o.parentObj.oPosX,             y = o.parentObj.oPosY + (offsetY - 100),  z = o.parentObj.oPosZ},
+        {x = o.parentObj.oPosX - offset1,   y = o.parentObj.oPosY + (offsetY -  10),   z = o.parentObj.oPosZ - offset2},
+        {x = o.parentObj.oPosX + offset1,   y = o.parentObj.oPosY + (offsetY -  10),   z = o.parentObj.oPosZ + offset2},
     }
     o.oAnimState = o.oAnimState + 1
     if o.parentObj then

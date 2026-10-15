@@ -8,7 +8,7 @@ E_MODEL_POWERUP_ICEFLOWER  = smlua_model_util_get_id('jers_powerups_iceflower_ge
 E_MODEL_POWERUP_ICEBALL     = smlua_model_util_get_id('jers_powerups_iceball_geo')
 E_MODEL_POWERUP_ICECUBE     = smlua_model_util_get_id('jers_powerups_icecube_geo')
 E_MODEL_POWERUP_SNOWFLAKE   = smlua_model_util_get_id('jers_powerups_snowflake_geo')
---E_MODEL_POWERUP_BUBBLEFLOWER  = smlua_model_util_get_id('jers_powerups_bubbleflower_geo')
+E_MODEL_POWERUP_BUBBLEFLOWER  = smlua_model_util_get_id('jers_powerups_bubbleflower_geo')
 --E_MODEL_POWERUP_CLOUDFLOWER  = smlua_model_util_get_id('jers_powerups_cloudflower_geo')
 
 SOUND_POWERUP_SAVE = audio_sample_load("jers_powerups_save.ogg")
@@ -44,6 +44,7 @@ PROJECTILE_TYPE_ICE = 1
 powerupDespawnTime = 15*30
 fireballLifetime = 100
 iceballLifetime = 60
+bubbleLifetime = 150
 powerupTime = 45
 replaceStarSound = 0
 capCol = -1
@@ -64,7 +65,7 @@ capCol = -1
 enemyDrops = {
     [id_bhvSpindrift]   = POWERUP_FIRE,
     [id_bhvMrBlizzard]  = POWERUP_ICE,
-    -- [id_bhvSkeeter]     = POWERUP_BUBBLE,
+    [id_bhvSkeeter]     = POWERUP_BUBBLE,
     -- [id_bhvMoneybag]    = POWERUP_GOLD,
     -- [id_bhvEnemyLakitu] = POWERUP_CLOUD,
     -- [id_bhvFlyGuy]      = POWERUP_PROPELLER,
@@ -132,7 +133,17 @@ add_power_up(POWERUP_ICE,    {model = E_MODEL_POWERUP_ICEFLOWER, tex = TEX_POWER
     [CAP]       = {r = 000, g = 170, b = 255},
     [EMBLEM]    = nil,
 }})
---add_power_up(POWERUP_BUBBLE, {col = {r = 255, g = 128, b = 255}, model = E_MODEL_POWERUP_BUBBLEFLOWER, tex = TEX_POWERUP_BUBBLE}) start of unused
+add_power_up(POWERUP_BUBBLE, {model = E_MODEL_POWERUP_BUBBLEFLOWER, tex = TEX_POWERUP_BUBBLE,
+    col = {
+    [PANTS]     = capCol,
+    [SHIRT]     = {r = 255, g = 128, b = 255},
+    [GLOVES]    = nil,
+    [SHOES]     = nil,
+    [HAIR]      = nil,
+    [SKIN]      = nil,
+    [CAP]       = {r = 255, g = 128, b = 255},
+    [EMBLEM]    = nil,
+}})
 --add_power_up(POWERUP_GOLD, {col = {r = 255, g = 200, b = 000}, model = E_MODEL_POWERUP_GOLDFLOWER, tex = TEX_POWERUP_GOLD})
 --add_power_up(POWERUP_CLOUD, {col = {r = 255, g = 255, b = 255}, model = E_MODEL_POWERUP_CLOUDFLOWER, tex = TEX_POWERUP_CLOUD})
 --add_power_up(POWERUP_PROPELLER, {col = nil, model = E_MODEL_POWERUP_PROPELLERBOX, tex = TEX_POWERUP_PROPELLER})
@@ -203,6 +214,7 @@ function store_powerup(m, pu)
     mod_storage_save_integer("pocket_item", pu)
 end
 
+---@param m MarioState
 ---@param o Object Enemy to check the behavious id of
 ---@param velX number Powerup oForwardVel
 ---@param velY number Powerup oVelY
@@ -255,12 +267,20 @@ function spawn_powerup_manual(x, y, z, velX, velY, angle, type, sound)
 end
 
 ---@param parent Object
-function spawn_visual_coins(parent)
-    for i=1, 3 do
-        spawn_sync_object(id_bhvVisualCoins, E_MODEL_YELLOW_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
+---@param bluecoin boolean whether to spawn a bluecoin or 3 yellow coins
+function spawn_visual_coins(parent, bluecoin)
+    if bluecoin then
+        spawn_sync_object(id_bhvVisualCoins, E_MODEL_BLUE_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
             coins.parentObj = parent
-            coins.oBehParams = i
+            coins.oBehParams = 1
         end)
+    else
+        for i=1, 3 do
+            spawn_sync_object(id_bhvVisualCoins, E_MODEL_YELLOW_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
+                coins.parentObj = parent
+                coins.oBehParams = i
+            end)
+        end
     end
 end
 
