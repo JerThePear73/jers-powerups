@@ -16,6 +16,7 @@ local function spawn_bubble_projectile(m)
     if m.playerIndex ~= 0 then return end
     spawn_sync_object(id_bhvPowerupBubble, E_MODEL_NONE, m.pos.x, m.pos.y + 50, m.pos.z, function(o)
         o.oMoveAngleYaw = m.faceAngle.y
+        o.oVelY = m.action == ACT_AIR_THROW and -3 or -1
     end)
 end
 

@@ -65,7 +65,7 @@ id_bhvPowerupStar = hook_behavior(nil, OBJ_LIST_GENACTOR, true, bhv_starman_init
 local function bhv_general_powerup_init(o)
     local model = E_MODEL_1UP
     local hitboxSize = 50
-    o.oInteractType = INTERACT_CAP
+    --o.oInteractType = INTERACT_CAP
     o.oFlags = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
     o.hitboxRadius      = hitboxSize
     o.hitboxHeight      = hitboxSize
@@ -115,13 +115,8 @@ local function bhv_general_powerup_loop(o)
     end
 
     if o.parentObj.oAction ~= -1 and
-    (obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 or
-    obj_has_behavior_id(o.parentObj, id_bhvPowerupBubble) ~= 0) then
-        if obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 then
-            o.oPosY = o.parentObj.oPosY + (50 * o.parentObj.header.gfx.scale.y)
-        elseif obj_has_behavior_id(o.parentObj, id_bhvPowerupBubble) ~= 0 then
-            o.oPosY = o.parentObj.oPosY  + (10 * o.parentObj.header.gfx.scale.y)
-        end
+    (obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 or obj_has_behavior_id(o.parentObj, id_bhvPowerupBubble) ~= 0) then
+        o.oPosY = o.parentObj.oPosY + (50 * o.parentObj.header.gfx.scale.y)
         o.oPosX = o.parentObj.oPosX
         o.oPosZ = o.parentObj.oPosZ
         o.oMoveAngleYaw = o.parentObj.oMoveAngleYaw
@@ -290,7 +285,7 @@ local function bhv_icecube_init(o)
     spawn_mist_particles_with_sound(SOUND_OBJ_BIG_PENGUIN_WALK)
     spawn_mist_particles_with_sound(SOUND_OBJ_BIG_PENGUIN_WALK)
 
-    spawn_visual_coins(o)
+    spawn_visual_coins(o, 3)
 end
 local function bhv_icecube_loop(o)
     local icecubeDurr = iceballLifetime * 4 -- 3
@@ -331,30 +326,30 @@ id_bhvIceCube = hook_behavior(nil, OBJ_LIST_SURFACE, true, bhv_icecube_init, bhv
 
 ---@param o Object
 local function bhv_powerup_bubble_init(o)
-    local hitboxSize = 120
     o.oFlags                = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
     o.activeFlags           = o.activeFlags | ACTIVE_FLAG_UNK9
     o.oGraphYOffset         = 0
     o.oGravity              = -0.1
-    o.oBounciness           = 2
-    o.oDragStrength         = 0
-    o.oFriction             = 0.1
+    o.oBounciness           = 1
+    o.oDragStrength         = 1
+    o.oFriction             = 0.5
     o.oBuoyancy             = -3
     o.oTimer                = 0
     o.oMoveAngleRoll        = 0
     o.oMoveAnglePitch       = 0
-    o.hitboxDownOffset      = hitboxSize/2
-    o.hitboxRadius          = hitboxSize * 0.75
-    o.hitboxHeight          = hitboxSize
-    o.hurtboxRadius         = hitboxSize * 0.75
-    o.hurtboxHeight         = hitboxSize
+    o.hitboxDownOffset      = 0
+    o.hitboxRadius          = 150
+    o.hitboxHeight          = 200
+    o.hurtboxRadius         = 150
+    o.hurtboxHeight         = 200
+    o.oWallHitboxRadius     = 100
     o.oAction               = 0
     o.oForwardVel           = 0
-    o.oVelY                 = 0
-    o.oNumLootCoins         = 0
+    --o.oNumLootCoins         = 0
     o.oCapUnkF4             = 0
-    obj_set_billboard(o)
-    obj_set_model_extended(o, E_MODEL_BUBBLE)
+    o.oCapUnkF8             = 0
+    obj_scale(o, 0)
+    obj_set_model_extended(o, E_MODEL_POWERUP_BUBBLE)
     --cur_obj_play_sound_1(SOUND_ACTION_SWIM)
     play_sound_with_freq_scale(SOUND_OBJ_DEFAULT_DEATH, o.header.gfx.cameraToObject, 1.5)
     cur_obj_become_tangible()
@@ -362,48 +357,54 @@ end
 local function bhv_powerup_bubble_loop(o)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
-    local bubbleScale = math.clamp(o.oCapUnkF4/2, 0, o.oAction == 0 and 7 or 8)
-    local bubbleSpeed = math.clamp(40 - o.oCapUnkF4, 5, 100)
+    local bubbleScale = math.clamp(o.oCapUnkF4/12, 0, o.oAction == 0 and 1 or 1.3)
+    local bubbleSpeed = math.clamp(40 - o.oCapUnkF4, 1, 100)
 
     local step = object_step_without_floor_orient()
     if step & OBJ_COL_FLAG_HIT_WALL ~= 0 and o.oTimer > 13 then
         o.oAction = -1
+    elseif step & OBJ_COL_FLAG_GROUNDED ~= 0 then
+        o.oAction = -1
     end
 
-    local targetDist = 0x20000
-    for key, hit_effect in pairs(projectileHitInteracts) do
-        local hitObj = cur_obj_nearest_object_with_behavior(get_behavior_from_id(key))
-        if hitObj ~= nil then
-            if projectileHitInteracts[key] ~= nil then
-                local dist = dist_between_objects(o, hitObj)
-                if dist < targetDist then
-                    targetDist = dist
-                end
-                if obj_check_hitbox_overlap(o, hitObj) and projectileHitInteracts[key].bubble and o.oAction ~= 1 then
-                    hit_effect.bubble(o, hitObj)
-                    o.oAction = 1
+    if o.oAction == 0 then
+        local targetDist = 0x20000
+        for key, hit_effect in pairs(projectileHitInteracts) do
+            local hitObj = cur_obj_nearest_object_with_behavior(get_behavior_from_id(key))
+            if hitObj ~= nil then
+                if projectileHitInteracts[key] ~= nil then
+                    local dist = dist_between_objects(o, hitObj)
+                    if dist < targetDist then
+                        targetDist = dist
+                    end
+                    if obj_check_hitbox_overlap(o, hitObj) and projectileHitInteracts[key].bubble and o.oAction ~= 1 then
+                        hit_effect.bubble(o, hitObj)
+                        o.oAction = 1
+                    end
                 end
             end
         end
+    elseif o.oAction == 1 then
+        o.oVelY = 2
     end
 
     if o.oAction == -1 then
         play_sound_with_freq_scale(SOUND_OBJ_DEFAULT_DEATH, o.header.gfx.cameraToObject, -1.5)
         spawn_mist_particles_variable(10, 50, 10)
-        if o.oNumLootCoins == 3 then
-            obj_spawn_loot_yellow_coins(o, 3, 0)
+        if o.oNumLootCoins > 0 and o.oNumLootCoins < 5 then
+            obj_spawn_loot_yellow_coins(o, o.oNumLootCoins, 0)
         elseif o.oNumLootCoins == 5 then
             spawn_non_sync_object(id_bhvMrIBlueCoin, E_MODEL_BLUE_COIN, o.oPosX, o.oPosY, o.oPosZ, nil)
         end
         o.oNumLootCoins = 0
         o.activeFlags = ACTIVE_FLAG_DEACTIVATED
     elseif o.oTimer > 15 and m.vel.y < 10 then
-        if obj_check_hitbox_overlap(m.marioObj, o) then
+        if obj_check_hitbox_overlap(m.marioObj, o) and m.action & ACT_FLAG_AIR ~= 0 then
             if m.action == ACT_DOUBLE_JUMP then
                 set_mario_action(m, ACT_TRIPLE_JUMP, 0)
             elseif m.action == ACT_JUMP or m.action == ACT_SIDE_FLIP or m.action == ACT_FREEFALL or m.action == ACT_WALL_KICK_AIR then
                 set_mario_action(m, ACT_DOUBLE_JUMP, 0)
-            elseif m.action & ACT_FLAG_AIR ~= 0 then
+            else
                 set_mario_action(m, ACT_JUMP, 0)
             end
             o.oAction = -1
@@ -426,10 +427,13 @@ local function bhv_powerup_bubble_loop(o)
         obj_mark_for_deletion(o)
     end
 
+    local bubbleWobble = math.sin(o.oTimer * 0.3)*0.03
+    o.header.gfx.scale.x = bubbleScale + bubbleWobble
+    o.header.gfx.scale.y = bubbleScale - bubbleWobble
+    o.header.gfx.scale.z = bubbleScale + bubbleWobble
+
     o.oCapUnkF4 = o.oCapUnkF4 + 1
     o.oForwardVel = bubbleSpeed
-
-    obj_scale(o, bubbleScale)
 end
 id_bhvPowerupBubble = hook_behavior(nil, OBJ_LIST_GENACTOR, true, bhv_powerup_bubble_init, bhv_powerup_bubble_loop, "bhvPowerupBubble")
 
@@ -441,20 +445,43 @@ local function bhv_visual_coins_init(o)
     obj_set_billboard(o)
 end
 local function bhv_visual_coins_loop(o)
-    local offset1 = math.sin(o.oTimer * 0.1) * 40
-    local offset2 = math.cos(o.oTimer * 0.1) * 40
-    local offsetY = (o.parentObj and obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0) and (o.parentObj.hitboxHeight * o.parentObj.header.gfx.scale.y)/2 or 150
-    local coinLayout = {
-        {x = o.parentObj.oPosX,             y = o.parentObj.oPosY + (offsetY - 100),  z = o.parentObj.oPosZ},
-        {x = o.parentObj.oPosX - offset1,   y = o.parentObj.oPosY + (offsetY -  10),   z = o.parentObj.oPosZ - offset2},
-        {x = o.parentObj.oPosX + offset1,   y = o.parentObj.oPosY + (offsetY -  10),   z = o.parentObj.oPosZ + offset2},
+    local spin1 = math.sin(o.oTimer * 0.1) * 40
+    local spin2 = math.cos(o.oTimer * 0.1) * 40
+    local par = o.parentObj
+    local offsetY = (par.hitboxHeight * par.header.gfx.scale.y)/2
+
+    local coinLayouts = {
+        [1] = {
+            {x = par.oPosX,         y = par.oPosY + offsetY - 50,  z = par.oPosZ},
+        },
+        [2] = {
+            {x = par.oPosX - spin1, y = par.oPosY + offsetY -  50, z = par.oPosZ - spin2},
+            {x = par.oPosX + spin1, y = par.oPosY + offsetY -  50, z = par.oPosZ + spin2},
+        },
+        [3] = {
+            {x = par.oPosX,         y = par.oPosY + offsetY - 100, z = par.oPosZ},
+            {x = par.oPosX - spin1, y = par.oPosY + offsetY -  10, z = par.oPosZ - spin2},
+            {x = par.oPosX + spin1, y = par.oPosY + offsetY -  10, z = par.oPosZ + spin2},
+        },
+        [4] = {
+            {x = par.oPosX - spin1, y = par.oPosY + offsetY -  90, z = par.oPosZ - spin2},
+            {x = par.oPosX + spin1, y = par.oPosY + offsetY -  90, z = par.oPosZ + spin2},
+            {x = par.oPosX - spin1, y = par.oPosY + offsetY -   0, z = par.oPosZ - spin2},
+            {x = par.oPosX + spin1, y = par.oPosY + offsetY -   0, z = par.oPosZ + spin2},
+        },
+        [5] = {
+            {x = par.oPosX,         y = par.oPosY + offsetY - 50,  z = par.oPosZ},
+        },
+
     }
     o.oAnimState = o.oAnimState + 1
-    if o.parentObj then
-        o.oPosX = coinLayout[o.oBehParams].x
-        o.oPosY = coinLayout[o.oBehParams].y
-        o.oPosZ = coinLayout[o.oBehParams].z
-        if o.parentObj.oNumLootCoins == 0 or o.parentObj.header.gfx.scale.y < 0.5 then
+    if par then
+        if par.oNumLootCoins > 0 then
+            local usePos = coinLayouts[par.oNumLootCoins][o.oBehParams]
+            o.oPosX = usePos.x
+            o.oPosY = usePos.y
+            o.oPosZ = usePos.z
+        else
             obj_mark_for_deletion(o)
         end
     end

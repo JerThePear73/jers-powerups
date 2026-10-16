@@ -9,6 +9,7 @@ E_MODEL_POWERUP_ICEBALL     = smlua_model_util_get_id('jers_powerups_iceball_geo
 E_MODEL_POWERUP_ICECUBE     = smlua_model_util_get_id('jers_powerups_icecube_geo')
 E_MODEL_POWERUP_SNOWFLAKE   = smlua_model_util_get_id('jers_powerups_snowflake_geo')
 E_MODEL_POWERUP_BUBBLEFLOWER  = smlua_model_util_get_id('jers_powerups_bubbleflower_geo')
+E_MODEL_POWERUP_BUBBLE  = smlua_model_util_get_id('jers_powerups_bubble_geo')
 --E_MODEL_POWERUP_CLOUDFLOWER  = smlua_model_util_get_id('jers_powerups_cloudflower_geo')
 
 SOUND_POWERUP_SAVE = audio_sample_load("jers_powerups_save.ogg")
@@ -267,15 +268,15 @@ function spawn_powerup_manual(x, y, z, velX, velY, angle, type, sound)
 end
 
 ---@param parent Object
----@param bluecoin boolean whether to spawn a bluecoin or 3 yellow coins
-function spawn_visual_coins(parent, bluecoin)
-    if bluecoin then
+---@param numCoins integer how many visual coins to spawn
+function spawn_visual_coins(parent, numCoins)
+    if numCoins == 5 then
         spawn_sync_object(id_bhvVisualCoins, E_MODEL_BLUE_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
             coins.parentObj = parent
             coins.oBehParams = 1
         end)
     else
-        for i=1, 3 do
+        for i=1, numCoins do
             spawn_sync_object(id_bhvVisualCoins, E_MODEL_YELLOW_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
                 coins.parentObj = parent
                 coins.oBehParams = i
