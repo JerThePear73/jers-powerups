@@ -3,7 +3,6 @@
 local function general_hit_disallow(proj, target)
     proj.oAction = -1
 end
-
 local function fire_hit_generic(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
@@ -16,7 +15,6 @@ local function fire_hit_generic(proj, target)
         target.oTimer = 1
     end
 end
-
 local function fire_hit_snowman(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
@@ -42,7 +40,6 @@ local function fire_hit_snowman(proj, target)
     obj_mark_for_deletion(target)
     proj.oAction = 1
 end
-
 local function fire_hit_heaveho(proj, target)
     spawn_non_sync_object(id_bhvMrIBlueCoin, E_MODEL_BLUE_COIN, target.oPosX, target.oPosY, target.oPosZ, nil)
     play_sound(SOUND_GENERAL_BREAK_BOX, target.header.gfx.cameraToObject)
@@ -50,7 +47,6 @@ local function fire_hit_heaveho(proj, target)
     obj_mark_for_deletion(target)
     proj.oAction = 1
 end
-
 local function fire_hit_eyeball(proj, target)
     if target.header.gfx.scale.y > 1 then
         general_hit_disallow(proj, target)
@@ -61,14 +57,22 @@ local function fire_hit_eyeball(proj, target)
     obj_mark_for_deletion(target)
     proj.oAction = 1
 end
-
 local function fire_hit_bully(proj, target)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     target.oMoveAngleYaw = proj.oMoveAngleYaw
     target.oForwardVel = proj.oBehParams == POWERUP_GOLD and 60 or 30
     proj.oAction = 1
 end
-
+local function fire_hit_small_box(proj, target)
+    for i=0, 2 do
+        spawn_non_sync_object(id_bhvSingleCoinGetsSpawned, E_MODEL_YELLOW_COIN, target.oPosX, target.oPosY, target.oPosZ, function(coin)
+            coin.oVelY = 20
+        end)
+    end
+    create_sound_spawner(SOUND_GENERAL_BREAK_BOX)
+    obj_mark_for_deletion(target)
+    proj.oAction = 1
+end
 local function fire_hit_bowser(proj, target)
     local oBowser = target.parentObj
     if oBowser.oAction ~= 19 and oBowser.oAction ~= 4 and oBowser.oAction ~= 12 then
@@ -232,7 +236,7 @@ projectileHitInteracts = {
     [id_bhvHeaveHo]             = {[POWERUP_FIRE] = fire_hit_heaveho,     [POWERUP_ICE] = ice_hit_bluecoin_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
     [id_bhvMrI]                 = {[POWERUP_FIRE] = fire_hit_eyeball,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
     [id_bhvBreakableBox]        = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvBreakableBoxSmall]   = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = bubble_hit_box},
+    [id_bhvBreakableBoxSmall]   = {[POWERUP_FIRE] = fire_hit_small_box,   [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = bubble_hit_box},
     [id_bhvHauntedChair]        = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_bluecoin_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
     [id_bhvBowserBodyAnchor]    = {[POWERUP_FIRE] = fire_hit_bowser,      [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
     [id_bhvChuckya]             = {[POWERUP_FIRE] = general_hit_disallow, [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},

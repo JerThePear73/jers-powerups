@@ -113,8 +113,13 @@ local function mario_update(m)
     if (m.action == ACT_THROWING or m.action == ACT_AIR_THROW) and m.actionArg == 70 then
         local soundFrame = m.action == ACT_THROWING and 5 or -1
 
-        if m.action == ACT_AIR_THROW and (m.pos.y - m.floorHeight) < (m.vel.y * -1) + 1 and m.vel.y < 0 then
-            set_mario_action(m, ACT_FREEFALL_LAND, 0)
+        if m.action == ACT_AIR_THROW then
+            if (m.pos.y - m.floorHeight) < (m.vel.y * -1) + 1 and m.vel.y < 0 then
+                set_mario_action(m, ACT_FREEFALL_LAND, 0)
+            end
+            if m.input & INPUT_Z_PRESSED ~= 0 then
+                set_mario_action(m, ACT_GROUND_POUND, 0)
+            end
         end
 
         if mario_powerup_throw_type and m.capTimer > 5 then
