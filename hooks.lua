@@ -1,10 +1,7 @@
 ---@param m MarioState
 local function spawn_fire_or_ice_ball(m, beh)
-    local model = beh == PROJECTILE_TYPE_FIRE and E_MODEL_POWERUP_FIREBALL or E_MODEL_POWERUP_ICEBALL
-    local sound = beh == PROJECTILE_TYPE_FIRE and SOUND_OBJ_FLAME_BLOWN or SOUND_OBJ_BABY_PENGUIN_WALK
     if m.playerIndex ~= 0 then return end
-    play_sound(sound, m.marioObj.header.gfx.cameraToObject)
-    spawn_sync_object(id_bhvFireOrIceball, model, m.pos.x, m.pos.y + 100, m.pos.z, function(o)
+    spawn_sync_object(id_bhvFireOrIceball, E_MODEL_NONE, m.pos.x, m.pos.y + 100, m.pos.z, function(o)
         o.oMoveAngleYaw = m.faceAngle.y
         o.oVelY = 15
         o.oBehParams = beh
@@ -31,7 +28,7 @@ local function mario_update(m)
         if e.playerCapCol ~= network_player_get_override_palette_color(np, CAP) then
             e.playerCapCol = network_player_get_override_palette_color(np, CAP)
         end
-        if e.powerupFlags == POWERUP_METAL then
+        if e.powerupFlags == POWERUP_METAL or e.powerupFlags == POWERUP_GOLD then
             m.marioBodyState.modelState = m.marioBodyState.modelState & ~MODEL_STATE_METAL
         end
         if e.powerupFlags == POWERUP_VANISH then
@@ -40,7 +37,7 @@ local function mario_update(m)
     elseif e.powerupFlags then
         if m.flags & MARIO_METAL_CAP ~= 0 and m.marioBodyState.modelState & MODEL_STATE_METAL ~= 0 then
             network_player_set_override_palette_color(np, CAP, powerupData[POWERUP_METAL].col)
-        elseif (e.powerupFlags > 0 and e.powerupFlags < 4) then
+        elseif (e.powerupFlags > 0 and e.powerupFlags < 6) then
             if pu and pu.col then
                 if isToad then -- i hate this little bitch for his palette slots
                     local toadCol = pu.col[CAP]
@@ -63,6 +60,12 @@ local function mario_update(m)
                     end
                 end
             end
+            if e.powerupFlags == POWERUP_GOLD then
+                m.marioBodyState.modelState = m.marioBodyState.modelState | MODEL_STATE_METAL
+                if m.capTimer % 3 == 0 then
+                    set_mario_particle_flags(m, PARTICLE_SPARKLES, 0)
+                end
+            end
         end
     end
 
@@ -74,29 +77,30 @@ local function mario_update(m)
         --         m.marioBodyState.modelState = m.marioBodyState.modelState & ~MODEL_STATE_NOISE_ALPHA
         --     end
         -- else
-        
-        if charSelectExists and charSelect.is_menu_open() then
-            e.displayPowerup = false
-            if e.CSmenuCheck then
-                network_player_reset_override_palette(np)
-                e.CSmenuCheck = false
-            end
-        elseif m.capTimer < 1 and gNetworkPlayers[0].currActNum ~= 99 then
-            network_player_reset_override_palette(np)
-            spawn_mist_particles_with_sound(SOUND_MENU_ENTER_PIPE)
-            if e.displayPowerup then
+        if m.action ~= ACT_END_PEACH_CUTSCENE and m.action ~= ACT_JUMBO_STAR_CUTSCENE then
+            if charSelectExists and charSelect.is_menu_open() then
                 e.displayPowerup = false
+                if e.CSmenuCheck then
+                    network_player_reset_override_palette(np)
+                    e.CSmenuCheck = false
+                end
+            elseif m.capTimer < 1 and gNetworkPlayers[0].currActNum ~= 99 then
+                network_player_reset_override_palette(np)
+                spawn_mist_particles_with_sound(SOUND_MENU_ENTER_PIPE)
+                if e.displayPowerup then
+                    e.displayPowerup = false
+                end
+                e.powerupFlags = 0
+            elseif (e.powerupStartTimer > 0 or (m.capTimer < 90 and (m.flags & MARIO_WING_CAP == 0 or m.flags & MARIO_METAL_CAP ~= 0))) and (m.capTimer % frameSkip) == 0 then
+                network_player_reset_override_palette(np)
+                e.displayPowerup = false
+            elseif e.prevCharType ~= m.character.type then
+                network_player_reset_override_palette(np)
+                e.displayPowerup = false
+                e.prevCharType = m.character.type
+            else
+                e.displayPowerup = true
             end
-            e.powerupFlags = 0
-        elseif (e.powerupStartTimer > 0 or (m.capTimer < 90 and (m.flags & MARIO_WING_CAP == 0 or m.flags & MARIO_METAL_CAP ~= 0))) and (m.capTimer % frameSkip) == 0 then
-            network_player_reset_override_palette(np)
-            e.displayPowerup = false
-        elseif e.prevCharType ~= m.character.type then
-            network_player_reset_override_palette(np)
-            e.displayPowerup = false
-            e.prevCharType = m.character.type
-        else
-            e.displayPowerup = true
         end
         if e.powerupStartTimer > 0 then
             e.powerupStartTimer = e.powerupStartTimer - 1
@@ -106,34 +110,29 @@ local function mario_update(m)
         end
     end
 
-    if mario_powerup_throw_type and m.actionArg == 70 and m.capTimer > 5 then
-        if m.action == ACT_AIR_THROW then
-            if m.actionTimer == 2 then
-                if e.powerupFlags == POWERUP_FIRE or e.powerupFlags == POWERUP_ICE then
-                    spawn_fire_or_ice_ball(m, e.powerupFlags - 1)
-                elseif e.powerupFlags == POWERUP_BUBBLE then
-                    spawn_bubble_projectile(m)
-                end
-            end
-            if (m.pos.y - m.floorHeight) < (m.vel.y * -1) + 1 and m.vel.y < 0 then
-                set_mario_action(m, ACT_FREEFALL_LAND, 0)
-            end
-        elseif m.action == ACT_THROWING then
-            if m.actionTimer == 6 then
-                if e.powerupFlags == POWERUP_FIRE or e.powerupFlags == POWERUP_ICE then
-                    spawn_fire_or_ice_ball(m, e.powerupFlags - 1)
-                elseif e.powerupFlags == POWERUP_BUBBLE then
-                    spawn_bubble_projectile(m)
-                end
-            end
+    if (m.action == ACT_THROWING or m.action == ACT_AIR_THROW) and m.actionArg == 70 then
+        local soundFrame = m.action == ACT_THROWING and 5 or -1
+
+        if m.action == ACT_AIR_THROW and (m.pos.y - m.floorHeight) < (m.vel.y * -1) + 1 and m.vel.y < 0 then
+            set_mario_action(m, ACT_FREEFALL_LAND, 0)
         end
 
-        local soundFrame = m.action == ACT_THROWING and 6 or -1
-        if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
-            play_character_sound(m, CHAR_SOUND_PUNCH_HOO)
-        end
-        if m.action ~= ACT_THROWING or m.actionTimer < 15 then
-            m.marioBodyState.handState = MARIO_HAND_RIGHT_OPEN
+        if mario_powerup_throw_type and m.capTimer > 5 then
+            if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
+                play_character_sound(m, e.powerupFlags ~= 0 and CHAR_SOUND_PUNCH_HOO)
+                if e.powerupFlags == POWERUP_BUBBLE then
+                    spawn_bubble_projectile(m)
+                else
+                    spawn_fire_or_ice_ball(m, e.powerupFlags)
+                end
+            end
+            if m.action ~= ACT_THROWING or m.actionTimer < 15 then
+                m.marioBodyState.handState = MARIO_HAND_RIGHT_OPEN
+            end
+        else
+            if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
+                play_character_sound(m, e.powerupFlags ~= 0 and CHAR_SOUND_DOH)
+            end
         end
     end
 
@@ -176,6 +175,9 @@ local function mario_set_action(m)
         end
     end
 
+    if m.action == ACT_JUMBO_STAR_CUTSCENE then
+        reset_on_warp()
+    end
 end
 hook_event(HOOK_ON_SET_MARIO_ACTION, mario_set_action)
 
@@ -229,7 +231,9 @@ local function mario_interact(m, o, type)
     end
 
     if (o.oInteractStatus & INT_STATUS_WAS_ATTACKED ~= 0 and m.action ~= ACT_TWIRLING) then
-        spawn_powerup_from_bhv(m, o, 0, 15, o.oFaceAngleYaw, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
+        if obj_has_behavior_id(o, id_bhvMoneybag) == 0 or o.oAction ~= MONEYBAG_ACT_DEATH then -- Moneybags sometimes spawns 2 flowers, this fixes it
+            spawn_powerup_from_bhv(m, o, 0, 15, o.oFaceAngleYaw, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
+        end
     end
 end
 hook_event(HOOK_ON_INTERACT, mario_interact)

@@ -1,17 +1,23 @@
-local fireballHitSound = SOUND_ACTION_HIT
-
----@param fireball Object -- fireball obj
+---@param proj Object -- projectile obj
 ---@param target Object -- the obj fireball hit
-local function fire_hit_generic(fireball, target)
+local function general_hit_disallow(proj, target)
+    proj.oAction = -1
+end
+
+local function fire_hit_generic(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED | INT_STATUS_TOUCHED_BOB_OMB-- | ATTACK_FROM_ABOVE
     spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw - 0x8000, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
-    spawn_mist_particles_with_sound(fireballHitSound)
-    obj_mark_for_deletion(fireball)
+    proj.oAction = 1
+    if obj_has_behavior_id(target, id_bhvMoneybag) ~= 0 then
+        target.parentObj.activeFlags = ACTIVE_FLAG_DEACTIVATED
+        target.oAction = MONEYBAG_ACT_DEATH
+        target.oTimer = 1
+    end
 end
 
-local function fire_hit_snowman(fireball, target)
+local function fire_hit_snowman(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     for i=0, 2 do
@@ -34,66 +40,60 @@ local function fire_hit_snowman(fireball, target)
         target.oAnimState = 0
     end
     obj_mark_for_deletion(target)
-    spawn_mist_particles_with_sound(fireballHitSound)
-    obj_mark_for_deletion(fireball)
+    proj.oAction = 1
 end
 
-local function fire_hit_heaveho(fireball, target)
+local function fire_hit_heaveho(proj, target)
     spawn_non_sync_object(id_bhvMrIBlueCoin, E_MODEL_BLUE_COIN, target.oPosX, target.oPosY, target.oPosZ, nil)
     play_sound(SOUND_GENERAL_BREAK_BOX, target.header.gfx.cameraToObject)
     spawn_triangle_break_particles(30, 138, 3.0, 4)
     obj_mark_for_deletion(target)
-    spawn_mist_particles_with_sound(fireballHitSound)
-    obj_mark_for_deletion(fireball)
+    proj.oAction = 1
 end
 
-local function fire_hit_eyeball(fireball, target)
+local function fire_hit_eyeball(proj, target)
+    if target.header.gfx.scale.y > 1 then
+        general_hit_disallow(proj, target)
+        return
+    end
     spawn_non_sync_object(id_bhvMrIBlueCoin, E_MODEL_BLUE_COIN, target.oPosX, target.oPosY, target.oPosZ, nil)
     play_sound(SOUND_OBJ_MRI_DEATH, target.header.gfx.cameraToObject)
     obj_mark_for_deletion(target)
-    spawn_mist_particles_with_sound(fireballHitSound)
-    obj_mark_for_deletion(fireball)
+    proj.oAction = 1
 end
 
-local function fire_hit_bully(fireball, target)
+local function fire_hit_bully(proj, target)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
-    target.oMoveAngleYaw = fireball.oMoveAngleYaw
-    target.oForwardVel = 30
-    spawn_mist_particles_with_sound(fireballHitSound)
-    obj_mark_for_deletion(fireball)
+    target.oMoveAngleYaw = proj.oMoveAngleYaw
+    target.oForwardVel = proj.oBehParams == POWERUP_GOLD and 60 or 30
+    proj.oAction = 1
 end
 
-local function fire_hit_bowser(fireball, target)
+local function fire_hit_bowser(proj, target)
     local oBowser = target.parentObj
     if oBowser.oAction ~= 19 and oBowser.oAction ~= 4 and oBowser.oAction ~= 12 then
         oBowser.oMoveFlags = 0
         oBowser.oSubAction = 0
-        oBowser.oMoveAngleYaw = fireball.oMoveAngleYaw + 0x8000
+        oBowser.oMoveAngleYaw = proj.oMoveAngleYaw + 0x8000
         oBowser.oFaceAngleYaw = oBowser.oMoveAngleYaw + 0x8000
         oBowser.oAction = 1
-        oBowser.oForwardVel = -20
-        oBowser.oVelY = 40
-        spawn_mist_particles_with_sound(fireballHitSound)
+        oBowser.oForwardVel = proj.oBehParams == POWERUP_GOLD and -40 or -20
+        oBowser.oVelY = proj.oBehParams == POWERUP_GOLD and 60 or 40
+        spawn_mist_particles_with_sound(SOUND_ACTION_HIT)
     else
         spawn_mist_particles_with_sound(SOUND_OBJ_DEFAULT_DEATH)
     end
-    obj_mark_for_deletion(fireball)
+    obj_mark_for_deletion(proj)
 end
 
-local function fire_hit_stop(fireball, target)
-    spawn_mist_particles_with_sound(SOUND_OBJ_DEFAULT_DEATH)
-    obj_mark_for_deletion(fireball)
-end
 
----@param iceball Object -- iceball obj
----@param target Object -- the obj iceball hit
-local function ice_hit_genertic_freeze(iceball, target)
+local function ice_hit_genertic_freeze(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     target.activeFlags = target.activeFlags | ACTIVE_FLAG_DEACTIVATED
     target.header.gfx.shadowInvisible = true
-    obj_mark_for_deletion(iceball)
+    obj_mark_for_deletion(proj)
     spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
         cube.oNumLootCoins = 3
         spawn_powerup_from_bhv(m, target, 0, 0, target.oFaceAngleYaw, cube, SOUND_GENERAL_GRAND_STAR_JUMP)
@@ -103,8 +103,8 @@ local function ice_hit_genertic_freeze(iceball, target)
         end
     end)
 end
-local function ice_hit_bobomb_freeze(iceball, target)
-    obj_mark_for_deletion(iceball)
+local function ice_hit_bobomb_freeze(proj, target)
+    obj_mark_for_deletion(proj)
     if target.oBehParams ~= 0x100 then -- bobomb has coin
         obj_spawn_yellow_coins(target, 1)
     end
@@ -114,9 +114,9 @@ local function ice_hit_bobomb_freeze(iceball, target)
     end)
     obj_mark_for_deletion(target)
 end
-local function ice_hit_bluecoin_freeze(iceball, target)
+local function ice_hit_bluecoin_freeze(proj, target)
     target.oInteractStatus = target.oInteractStatus | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
-    obj_mark_for_deletion(iceball)
+    obj_mark_for_deletion(proj)
     spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
         cube.oNumLootCoins = 3
         cube.oMoveAngleYaw = target.oMoveAngleYaw
@@ -125,11 +125,11 @@ local function ice_hit_bluecoin_freeze(iceball, target)
     spawn_non_sync_object(id_bhvMrIBlueCoin, E_MODEL_BLUE_COIN, target.oPosX, target.oPosY, target.oPosZ, nil)
     obj_mark_for_deletion(target)
 end
-local function ice_hit_goomba_or_koopa_freeze(iceball, target)
+local function ice_hit_goomba_or_koopa_freeze(proj, target)
     if target.header.gfx.scale.y <= 0.9 then return end
 
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
-    obj_mark_for_deletion(iceball)
+    obj_mark_for_deletion(proj)
     spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
         cube.oNumLootCoins = 3
         cube.oMoveAngleYaw = target.oMoveAngleYaw
@@ -145,14 +145,13 @@ local function ice_hit_goomba_or_koopa_freeze(iceball, target)
     obj_mark_for_deletion(target)
 end
 
----@param bubble Object -- iceball obj
----@param target Object -- the obj iceball hit
-local function bubble_hit_generic_loot_coins(bubble, target)
+
+local function bubble_hit_generic_loot_coins(proj, target)
     if (obj_has_behavior_id(target, id_bhvGoomba) ~= 0) then
         if target.header.gfx.scale.y <= 0.5 then
             return
         elseif target.header.gfx.scale.y > 1.5 then
-            bubble.oAction = -1
+            proj.oAction = -1
         else
             obj_mark_for_deletion(target)
         end
@@ -165,80 +164,77 @@ local function bubble_hit_generic_loot_coins(bubble, target)
     end
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
-    bubble.oNumLootCoins = target.oNumLootCoins
+    proj.oNumLootCoins = target.oNumLootCoins
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     target.oNumLootCoins = 0
     target.activeFlags = target.activeFlags | ACTIVE_FLAG_DEACTIVATED
     target.header.gfx.shadowInvisible = true
     spawn_mist_particles_with_sound(SOUND_ACTION_SWIM_FAST)
-    spawn_visual_coins(bubble, bubble.oNumLootCoins)
-    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, bubble, SOUND_GENERAL_GRAND_STAR_JUMP)
+    spawn_visual_coins(proj, proj.oNumLootCoins)
+    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, proj, SOUND_GENERAL_GRAND_STAR_JUMP)
 end
-local function bubble_hit_generic_bluecoin(bubble, target)
+local function bubble_hit_generic_bluecoin(proj, target)
     --local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     --local m = get_mario_state_from_object(nearestMarioObject)
-    bubble.oNumLootCoins = 5
+    proj.oNumLootCoins = 5
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     target.activeFlags = target.activeFlags | ACTIVE_FLAG_DEACTIVATED
     target.header.gfx.shadowInvisible = true
     spawn_mist_particles_with_sound(SOUND_ACTION_SWIM_FAST)
-    spawn_visual_coins(bubble, bubble.oNumLootCoins)
+    spawn_visual_coins(proj, proj.oNumLootCoins)
     --spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, bubble, SOUND_GENERAL_GRAND_STAR_JUMP)
     obj_mark_for_deletion(target)
 end
-local function bubble_hit_bobomb(bubble, target)
+local function bubble_hit_bobomb(proj, target)
     if target.oBehParams ~= 0x100 then -- bobomb has coin
-        bubble.oNumLootCoins = 1
+        proj.oNumLootCoins = 1
     end
     spawn_mist_particles_with_sound(SOUND_ACTION_SWIM_FAST)
-    spawn_visual_coins(bubble, bubble.oNumLootCoins)
+    spawn_visual_coins(proj, proj.oNumLootCoins)
     obj_mark_for_deletion(target)
 end
-local function bubble_hit_box(bubble, target)
-    bubble.oNumLootCoins = 3
+local function bubble_hit_box(proj, target)
+    proj.oNumLootCoins = 3
     spawn_mist_particles_with_sound(SOUND_ACTION_SWIM_FAST)
-    spawn_visual_coins(bubble, bubble.oNumLootCoins)
+    spawn_visual_coins(proj, proj.oNumLootCoins)
     obj_mark_for_deletion(target)
-end
-local function bubble_hit_stop(bubble, target)
-    bubble.oAction = -1
 end
 
 projectileHitInteracts = {
-    [id_bhvGoomba]              = {fire = fire_hit_generic,     ice = ice_hit_goomba_or_koopa_freeze,    bubble = bubble_hit_generic_loot_coins},
-    [id_bhvBobomb]              = {fire = fire_hit_generic,     ice = ice_hit_bobomb_freeze,             bubble = bubble_hit_bobomb},
-    [id_bhvKoopa]               = {fire = fire_hit_generic,     ice = ice_hit_goomba_or_koopa_freeze,    bubble = bubble_hit_generic_bluecoin},
-    [id_bhvMontyMole]           = {fire = fire_hit_generic,     ice = nil,                               bubble = nil},
-    [id_bhvBoo]                 = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = nil},
-    [id_bhvGhostHuntBoo]        = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = nil},
-    [id_bhvMerryGoRoundBoo]     = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = nil},
-    [id_bhvGhostHuntBigBoo]     = {fire = fire_hit_generic,     ice = fire_hit_stop,                     bubble = nil},
-    [id_bhvBalconyBigBoo]       = {fire = fire_hit_generic,     ice = fire_hit_stop,                     bubble = nil},
-    [id_bhvMerryGoRoundBigBoo]  = {fire = fire_hit_generic,     ice = fire_hit_stop,                     bubble = nil},
-    [id_bhvFlyingBookend]       = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = bubble_hit_generic_bluecoin},
-    [id_bhvSkeeter]             = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = bubble_hit_generic_loot_coins},
-    [id_bhvMoneybag]            = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = bubble_hit_generic_loot_coins},
-    [id_bhvSnufit]              = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = bubble_hit_generic_loot_coins},
-    [id_bhvSwoop]               = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = bubble_hit_generic_loot_coins},
-    [id_bhvFirePiranhaPlant]    = {fire = fire_hit_generic,     ice = fire_hit_stop,                     bubble = nil},
-    [id_bhvEnemyLakitu]         = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = bubble_hit_generic_loot_coins},
-    [id_bhvPokeyBodyPart]       = {fire = fire_hit_generic,     ice = fire_hit_stop,                     bubble = bubble_hit_generic_loot_coins},
-    [id_bhvEyerokHand]          = {fire = fire_hit_generic,     ice = fire_hit_stop,                     bubble = bubble_hit_stop},
-    [id_bhvScuttlebug]          = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = bubble_hit_generic_loot_coins},
-    [id_bhvSmallBully]          = {fire = fire_hit_bully,       ice = fire_hit_stop,                     bubble = bubble_hit_stop},
-    [id_bhvBigBully]            = {fire = fire_hit_bully,       ice = fire_hit_stop,                     bubble = bubble_hit_stop},
-    [id_bhvBigBullyWithMinions] = {fire = fire_hit_bully,       ice = fire_hit_stop,                     bubble = bubble_hit_stop},
-    [id_bhvSmallChillBully]     = {fire = fire_hit_bully,       ice = fire_hit_stop,                     bubble = bubble_hit_stop},
-    [id_bhvBigChillBully]       = {fire = fire_hit_bully,       ice = fire_hit_stop,                     bubble = bubble_hit_stop},
-    [id_bhvSpindrift]           = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = bubble_hit_generic_loot_coins},
-    [id_bhvFlyGuy]              = {fire = fire_hit_generic,     ice = ice_hit_genertic_freeze,           bubble = bubble_hit_generic_loot_coins},
-    [id_bhvMrBlizzard]          = {fire = fire_hit_snowman,     ice = fire_hit_stop,                     bubble = bubble_hit_stop},
-    [id_bhvHeaveHo]             = {fire = fire_hit_heaveho,     ice = ice_hit_bluecoin_freeze,           bubble = bubble_hit_generic_bluecoin},
-    [id_bhvMrI]                 = {fire = fire_hit_eyeball,     ice = fire_hit_stop,                     bubble = bubble_hit_generic_bluecoin},
-    [id_bhvBreakableBox]        = {fire = fire_hit_generic,     ice = nil,                               bubble = bubble_hit_stop},
-    [id_bhvBreakableBoxSmall]   = {fire = fire_hit_generic,     ice = nil,                               bubble = bubble_hit_box},
-    [id_bhvHauntedChair]        = {fire = fire_hit_generic,     ice = ice_hit_bluecoin_freeze,           bubble = bubble_hit_generic_bluecoin},
-    [id_bhvBowserBodyAnchor]    = {fire = fire_hit_bowser,      ice = fire_hit_stop,                     bubble = bubble_hit_stop},
-    [id_bhvChuckya]             = {fire = fire_hit_stop,        ice = fire_hit_stop,                     bubble = bubble_hit_stop},
-    [id_bhvIceCube]             = {fire = fire_hit_generic,     ice = nil,                               bubble = bubble_hit_stop},
+    [id_bhvGoomba]              = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_goomba_or_koopa_freeze,   [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvBobomb]              = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_bobomb_freeze,            [POWERUP_BUBBLE] = bubble_hit_bobomb},
+    [id_bhvKoopa]               = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_goomba_or_koopa_freeze,   [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
+    [id_bhvMontyMole]           = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = nil},
+    [id_bhvBoo]                 = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = nil},
+    [id_bhvGhostHuntBoo]        = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = nil},
+    [id_bhvMerryGoRoundBoo]     = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = nil},
+    [id_bhvGhostHuntBigBoo]     = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = nil},
+    [id_bhvBalconyBigBoo]       = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = nil},
+    [id_bhvMerryGoRoundBigBoo]  = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = nil},
+    [id_bhvFlyingBookend]       = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
+    [id_bhvSkeeter]             = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvMoneybag]            = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvSnufit]              = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvSwoop]               = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvFirePiranhaPlant]    = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = nil},
+    [id_bhvEnemyLakitu]         = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvPokeyBodyPart]       = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvEyerokHand]          = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvScuttlebug]          = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvSmallBully]          = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvBigBully]            = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvBigBullyWithMinions] = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvSmallChillBully]     = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvBigChillBully]       = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvSpindrift]           = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvFlyGuy]              = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
+    [id_bhvMrBlizzard]          = {[POWERUP_FIRE] = fire_hit_snowman,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvHeaveHo]             = {[POWERUP_FIRE] = fire_hit_heaveho,     [POWERUP_ICE] = ice_hit_bluecoin_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
+    [id_bhvMrI]                 = {[POWERUP_FIRE] = fire_hit_eyeball,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
+    [id_bhvBreakableBox]        = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvBreakableBoxSmall]   = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = bubble_hit_box},
+    [id_bhvHauntedChair]        = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_bluecoin_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
+    [id_bhvBowserBodyAnchor]    = {[POWERUP_FIRE] = fire_hit_bowser,      [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvChuckya]             = {[POWERUP_FIRE] = general_hit_disallow, [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvIceCube]             = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = general_hit_disallow},
 }

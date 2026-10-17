@@ -15,7 +15,9 @@ local function hud_render()
     if gNetworkPlayers[0].currActNum == 99 or gMarioStates[0].action == ACT_INTRO_CUTSCENE or obj_get_first_with_behavior_id(id_bhvActSelector) or (_G.charSelectExists and charSelect.is_menu_open()) then return end
 
     -- pocket item
-    local pocketX, pocketY = hudDodge.find_open_hud_space(0, 0, 32, 32, 0, 1, 3)
+    local pocketX, pocketY = hudDodge.find_open_hud_space(0, 0, 32, 32, 0, 1, 3) -- conflicts with redcoin detector
+    --local pocketX = 20
+    --local pocketY = (m.capTimer < 1) and 34 or 54
     local hardX = 20
     local lerpRate = 0.2
 
@@ -30,6 +32,10 @@ local function hud_render()
     elseif e.hudScaleY > 0.9999 and (get_global_timer() % 200) == 0 then
         e.hudDance = 35
     end
+
+    djui_hud_set_color(0, 0, 0, 0)
+    djui_hud_render_rect(pocketX, pocketY, 32, 32)
+    djui_hud_set_color(255, 255, 255, 255)
 
     if not djui_hud_is_pause_menu_created() then
         djui_hud_render_texture(TEX_POWERUP_POCKET, hardX, e.hudPosY, 1, 1)

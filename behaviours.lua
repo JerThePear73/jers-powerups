@@ -157,7 +157,7 @@ local function bhv_general_powerup_loop(o)
                 spawn_mist_particles_with_sound(SOUND_MENU_EXIT_PIPE)
                 play_character_sound(m, CHAR_SOUND_HERE_WE_GO)
                 e.powerupFlags = o.oBehParams
-                m.capTimer = powerupTime*30
+                m.capTimer = (o.oBehParams == POWERUP_GOLD and 15 or powerupTime)*30
                 m.flags = m.flags & ~MARIO_WING_CAP
                 m.flags = m.flags & ~MARIO_VANISH_CAP
                 m.flags = m.flags & ~MARIO_METAL_CAP
@@ -180,7 +180,7 @@ local function bhv_projectile_init(o)
     o.oBounciness           = 0
     o.oDragStrength         = 0
     o.oFriction             = 1
-    o.oBuoyancy             = -2
+    o.oBuoyancy             = 2
     o.oWallHitboxRadius     = 0
     o.hitboxDownOffset      = hitboxSize/2
     o.hitboxRadius          = hitboxSize/15
@@ -189,68 +189,101 @@ local function bhv_projectile_init(o)
     o.hurtboxHeight         = hitboxSize
     o.oDamageOrCoinValue    = 0
     o.oForwardVel           = 65
+    o.oAction               = 0
     o.oTimer                = 0
+    o.oCapUnkF4             = 0
     cur_obj_become_tangible()
 end
 local function bhv_projectile_loop(o)
-    local isIceball = o.oBehParams == 1
-    local projectileLifetime = isIceball and iceballLifetime or fireballLifetime
-    local particleType = isIceball and E_MODEL_POWERUP_SNOWFLAKE or E_MODEL_RED_FLAME
+    local puType = o.oBehParams
+    local isIceball = puType == POWERUP_ICE
+    local projData = {
+        [POWERUP_FIRE] = {model = E_MODEL_POWERUP_FIREBALL, trail = E_MODEL_RED_FLAME,          spawnSound = SOUND_OBJ_FLAME_BLOWN,         lifetime = fireballLifetime},
+        [POWERUP_ICE]  = {model = E_MODEL_POWERUP_ICEBALL,  trail = E_MODEL_POWERUP_SNOWFLAKE,  spawnSound = SOUND_OBJ_BABY_PENGUIN_WALK,   lifetime = iceballLifetime},
+        [POWERUP_GOLD] = {model = E_MODEL_POWERUP_GOLDBALL, trail = E_MODEL_SPARKLES_ANIMATION, spawnSound = SOUND_GENERAL_COIN_SPURT_2,    lifetime = goldballLifetime},
+    }
+
+    if o.oTimer == 1 then
+        play_sound(projData[puType].spawnSound, o.header.gfx.cameraToObject)
+    end
+    obj_set_model_extended(o, projData[puType].model)
 
     local step = object_step_without_floor_orient()
     if step & OBJ_COL_FLAGS_LANDED ~= 0 then
         o.oVelY = 30
+        if puType == POWERUP_GOLD and step & OBJ_COL_FLAG_UNDERWATER == 0 and o.oCapUnkF4 > 7 then
+            spawn_non_sync_object(id_bhvSingleCoinGetsSpawned, E_MODEL_YELLOW_COIN, o.oPosX, o.oPosY, o.oPosZ, function(coin)
+                coin.oVelY = 20
+            end)
+        end
+        o.oCapUnkF4 = 0
     end
     if step & OBJ_COL_FLAG_HIT_WALL ~= 0 then
         o.oForwardVel = 30
     else
         o.oForwardVel = 65
     end
-    local targetDist = 0x20000
-    for key, hit_effect in pairs(projectileHitInteracts) do
-        local hitObj = cur_obj_nearest_object_with_behavior(get_behavior_from_id(key))
-        if hitObj ~= nil then
-            if projectileHitInteracts[key] ~= nil then
-                local dist = dist_between_objects(o, hitObj)
-                if dist < targetDist then
-                    targetDist = dist
-                end
-                if obj_check_hitbox_overlap(o, hitObj) then
-                    if isIceball then
-                        if projectileHitInteracts[key].ice ~= nil then
-                            hit_effect.ice(o, hitObj)
-                        end
-                    else
-                        if projectileHitInteracts[key].fire ~= nil then
-                            hit_effect.fire(o, hitObj)
+    if step & OBJ_COL_FLAG_UNDERWATER ~= 0 then
+        if puType == POWERUP_FIRE then
+            spawn_mist_particles_with_sound(SOUND_GENERAL_FLAME_OUT)
+            o.oAction = -1
+        elseif puType == POWERUP_ICE then
+            o.oVelY = 30
+        end
+        o.oForwardVel = 65
+    end
+
+    if o.oAction == 0 then
+        local targetDist = 0x20000
+        local hitType = puType == POWERUP_GOLD and POWERUP_FIRE or puType -- change this when gold interacts are done
+        for key, hit_effect in pairs(projectileHitInteracts) do
+            local hitObj = cur_obj_nearest_object_with_behavior(get_behavior_from_id(key))
+            if hitObj ~= nil then
+                if projectileHitInteracts[key] ~= nil then
+                    local dist = dist_between_objects(o, hitObj)
+                    if dist < targetDist then
+                        targetDist = dist
+                    end
+                    if obj_check_hitbox_overlap(o, hitObj) then
+                        if projectileHitInteracts[key][hitType] then
+                            hit_effect[hitType](o, hitObj)
                         end
                     end
                 end
             end
         end
     end
+
     local range = 20
     local offsetX = math.random(-range, range)
     local offsetY = math.random(-range, range) + o.oGraphYOffset/2
     local offsetZ = math.random(-range, range)
-    spawn_non_sync_object(id_bhvCoinSparkles, particleType, o.oPosX + offsetX, o.oPosY + offsetY, o.oPosZ + offsetZ, function(trail)
-        obj_scale(trail, 1)
+    spawn_non_sync_object(id_bhvCoinSparkles, projData[puType].trail, o.oPosX + offsetX, o.oPosY + offsetY, o.oPosZ + offsetZ, function(particle)
+        obj_scale(particle, 1)
     end)
     o.oFaceAnglePitch = o.oFaceAnglePitch + 0x1200
     o.oFaceAngleYaw = o.oMoveAngleYaw
-    if step & OBJ_COL_FLAG_UNDERWATER ~= 0 then
-        if not isIceball then
-        spawn_mist_particles_with_sound(SOUND_GENERAL_FLAME_OUT)
-        obj_mark_for_deletion(o)
-        return
-        else
-            o.oVelY = 30
-        end
-    elseif o.oTimer >= projectileLifetime  then
+
+    if o.oTimer >= projData[puType].lifetime then
         spawn_mist_particles_with_sound(SOUND_OBJ_DEFAULT_DEATH)
+        o.oAction = -1
+    end
+    if o.oAction == -1 then
         obj_mark_for_deletion(o)
         return
+    elseif o.oAction == 1 then
+        if puType == POWERUP_GOLD then
+            for i=0, 1 do
+                spawn_non_sync_object(id_bhvSingleCoinGetsSpawned, E_MODEL_YELLOW_COIN, o.oPosX, o.oPosY, o.oPosZ, function(coin)
+                    coin.oVelY = 20
+                end)
+            end
+        end
+        spawn_mist_particles_with_sound(SOUND_ACTION_HIT)
+        o.oAction = -1
     end
+
+    o.oCapUnkF4 = (puType == POWERUP_GOLD) and o.oCapUnkF4 + 1 or 0
 end
 id_bhvFireOrIceball = hook_behavior(nil, OBJ_LIST_GENACTOR, true, bhv_projectile_init, bhv_projectile_loop, "bhvFireOrIceball")
 
@@ -377,8 +410,8 @@ local function bhv_powerup_bubble_loop(o)
                     if dist < targetDist then
                         targetDist = dist
                     end
-                    if obj_check_hitbox_overlap(o, hitObj) and projectileHitInteracts[key].bubble and o.oAction ~= 1 then
-                        hit_effect.bubble(o, hitObj)
+                    if obj_check_hitbox_overlap(o, hitObj) and projectileHitInteracts[key][POWERUP_BUBBLE] and o.oAction ~= 1 then
+                        hit_effect[POWERUP_BUBBLE](o, hitObj)
                         o.oAction = 1
                     end
                 end
