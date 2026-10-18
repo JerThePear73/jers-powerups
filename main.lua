@@ -1,2 +1,2 @@
--- name: \\#080\\Ev\\#0f0\\il\\#8f8\\sw\\#fff\\ag Po\\#8f8\\we\\#0f0\\ru\\#080\\ps
+-- name: \\#0f0\\Ev\\#8f0\\il\\#af0\\sw\\#ff0\\ag Powerups
 -- description: My awesome powerups mod that MIGHT work!!!
