@@ -377,13 +377,11 @@ local function bhv_powerup_bubble_init(o)
     o.hurtboxHeight         = 200
     o.oWallHitboxRadius     = 100
     o.oAction               = 0
-    o.oForwardVel           = 0
+    --o.oForwardVel           = 0
     --o.oNumLootCoins         = 0
     o.oCapUnkF4             = 0
-    o.oCapUnkF8             = 0
     obj_scale(o, 0)
     obj_set_model_extended(o, E_MODEL_POWERUP_BUBBLE)
-    --cur_obj_play_sound_1(SOUND_ACTION_SWIM)
     play_sound_with_freq_scale(SOUND_OBJ_DEFAULT_DEATH, o.header.gfx.cameraToObject, 1.5)
     cur_obj_become_tangible()
 end
@@ -391,7 +389,7 @@ local function bhv_powerup_bubble_loop(o)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     local bubbleScale = math.clamp(o.oCapUnkF4/12, 0, o.oAction == 0 and 1 or 1.3)
-    local bubbleSpeed = math.clamp(40 - o.oCapUnkF4, 1, 100)
+    local bubbleSpeed = math.clamp(o.oCapUnkF8 - o.oCapUnkF4, 1, 100)
 
     local step = object_step_without_floor_orient()
     if step & OBJ_COL_FLAG_HIT_WALL ~= 0 and o.oTimer > 13 then

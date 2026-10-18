@@ -98,54 +98,65 @@ local function ice_hit_genertic_freeze(proj, target)
     target.activeFlags = target.activeFlags | ACTIVE_FLAG_DEACTIVATED
     target.header.gfx.shadowInvisible = true
     obj_mark_for_deletion(proj)
-    spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
-        cube.oNumLootCoins = 3
-        spawn_powerup_from_bhv(m, target, 0, 0, target.oFaceAngleYaw, cube, SOUND_GENERAL_GRAND_STAR_JUMP)
-        cube.oFaceAngleYaw = target.oFaceAngleYaw
-        if obj_has_behavior_id(target, id_bhvGoomba) ~= 0 then
-            obj_scale(cube, target.header.gfx.scale.y*0.75)
-        end
-    end)
+    if m.playerIndex == 0 then
+        spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
+            cube.oNumLootCoins = 3
+            spawn_powerup_from_bhv(m, target, 0, 0, target.oFaceAngleYaw, cube, SOUND_GENERAL_GRAND_STAR_JUMP)
+            cube.oFaceAngleYaw = target.oFaceAngleYaw
+            if obj_has_behavior_id(target, id_bhvGoomba) ~= 0 then
+                obj_scale(cube, target.header.gfx.scale.y*0.75)
+            end
+        end)
+    end
 end
 local function ice_hit_bobomb_freeze(proj, target)
+    local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
+    local m = get_mario_state_from_object(nearestMarioObject)
     obj_mark_for_deletion(proj)
     if target.oBehParams ~= 0x100 then -- bobomb has coin
         obj_spawn_yellow_coins(target, 1)
     end
-    spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
-        cube.oNumLootCoins = 3
-        cube.oMoveAngleYaw = target.oMoveAngleYaw
-    end)
+    if m.playerIndex == 0 then
+        spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
+            cube.oNumLootCoins = 3
+            cube.oMoveAngleYaw = target.oMoveAngleYaw
+        end)
+    end
     obj_mark_for_deletion(target)
 end
 local function ice_hit_bluecoin_freeze(proj, target)
+    local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
+    local m = get_mario_state_from_object(nearestMarioObject)
     target.oInteractStatus = target.oInteractStatus | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     obj_mark_for_deletion(proj)
-    spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
-        cube.oNumLootCoins = 3
-        cube.oMoveAngleYaw = target.oMoveAngleYaw
-    end)
+    if m.playerIndex == 0 then
+        spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
+            cube.oNumLootCoins = 3
+            cube.oMoveAngleYaw = target.oMoveAngleYaw
+        end)
+    end
 
     spawn_non_sync_object(id_bhvMrIBlueCoin, E_MODEL_BLUE_COIN, target.oPosX, target.oPosY, target.oPosZ, nil)
     obj_mark_for_deletion(target)
 end
 local function ice_hit_goomba_or_koopa_freeze(proj, target)
     if target.header.gfx.scale.y <= 0.9 then return end
-
+    local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
+    local m = get_mario_state_from_object(nearestMarioObject)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     obj_mark_for_deletion(proj)
-    spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
-        cube.oNumLootCoins = 3
-        cube.oMoveAngleYaw = target.oMoveAngleYaw
-        obj_scale(cube, target.header.gfx.scale.y*0.7)
-    end)
-
+    if m.playerIndex == 0 then
+        spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
+            cube.oNumLootCoins = 3
+            cube.oMoveAngleYaw = target.oMoveAngleYaw
+            obj_scale(cube, target.header.gfx.scale.y*0.7)
+        end)
+    end
     if target.header.gfx.scale.y > 1.5 or obj_has_behavior_id(target, id_bhvKoopa) ~= 0 then
         spawn_non_sync_object(id_bhvMrIBlueCoin, E_MODEL_BLUE_COIN, target.oPosX, target.oPosY, target.oPosZ, nil)
     else
         obj_spawn_loot_yellow_coins(target, 1, 0)
     end
-
     obj_mark_for_deletion(target)
 end
 

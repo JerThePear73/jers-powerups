@@ -1,19 +1,20 @@
 ---@param m MarioState
-local function spawn_fire_or_ice_ball(m, beh)
+local function spawn_fire_or_ice_ball(m, beh, angle)
     if m.playerIndex ~= 0 then return end
     spawn_sync_object(id_bhvFireOrIceball, E_MODEL_NONE, m.pos.x, m.pos.y + 100, m.pos.z, function(o)
-        o.oMoveAngleYaw = m.faceAngle.y
+        o.oMoveAngleYaw = angle
         o.oVelY = 15
         o.oBehParams = beh
     end)
 end
 
 ---@param m MarioState
-local function spawn_bubble_projectile(m)
+local function spawn_bubble_projectile(m, angle)
     if m.playerIndex ~= 0 then return end
     spawn_sync_object(id_bhvPowerupBubble, E_MODEL_NONE, m.pos.x, m.pos.y + 50, m.pos.z, function(o)
-        o.oMoveAngleYaw = m.faceAngle.y
+        o.oMoveAngleYaw = angle
         o.oVelY = m.action == ACT_AIR_THROW and -3 or -1
+        o.oCapUnkF8 = 40 + (m.forwardVel/2)
     end)
 end
 
@@ -126,9 +127,9 @@ local function mario_update(m)
             if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
                 play_character_sound(m, e.powerupFlags ~= 0 and CHAR_SOUND_PUNCH_HOO)
                 if e.powerupFlags == POWERUP_BUBBLE then
-                    spawn_bubble_projectile(m)
+                    spawn_bubble_projectile(m, m.faceAngle.y)
                 else
-                    spawn_fire_or_ice_ball(m, e.powerupFlags)
+                    spawn_fire_or_ice_ball(m, e.powerupFlags, m.faceAngle.y)
                 end
             end
             if m.action ~= ACT_THROWING or m.actionTimer < 15 then
@@ -141,11 +142,16 @@ local function mario_update(m)
         end
     end
 
-    -- if m.marioBodyState.modelState & MODEL_STATE_NOISE_ALPHA ~= 0 and m.flags & MARIO_VANISH_CAP ~= 0 then
-    --     local torsoPos = gVec3fZero{}
-    --     get_mario_anim_part_pos(m, MARIO_ANIM_PART_TORSO, torsoPos)
-    --     spawn_non_sync_object(id_bhvMistParticleSpawner, E_MODEL_NONE, torsoPos.x, torsoPos.y - 20, torsoPos.z, nil)
-    -- end
+    if mario_powerup_throw_type and m.capTimer > 5 and m.action == ACT_SIDE_FLIP and m.actionArg == 73 and m.actionTimer == 5 then
+        if e.powerupFlags == POWERUP_BUBBLE then
+            spawn_bubble_projectile(m, m.faceAngle.y)
+            spawn_bubble_projectile(m, m.faceAngle.y - 0x8000)
+        else
+            spawn_fire_or_ice_ball(m, e.powerupFlags, m.faceAngle.y)
+            spawn_fire_or_ice_ball(m, e.powerupFlags, m.faceAngle.y - 0x8000)
+        end
+        djui_chat_message_create(tostring(m.faceAngle.y - m.marioObj.header.gfx.angle.y))
+    end
 
     if m.controller.buttonPressed & Y_BUTTON ~= 0 and m.playerIndex == 0 and e.powerupStored ~= 0 and e.powerupStored ~= nil and m.action & ACT_GROUP_CUTSCENE == 0 then
         local spawnBhv = 0
