@@ -8,8 +8,9 @@ E_MODEL_POWERUP_BUBBLEFLOWER    = smlua_model_util_get_id('jers_powerups_bubblef
 E_MODEL_POWERUP_BUBBLE          = smlua_model_util_get_id('jers_powerups_bubble_geo')
 E_MODEL_POWERUP_GOLDFLOWER      = smlua_model_util_get_id('jers_powerups_goldflower_geo')
 E_MODEL_POWERUP_GOLDBALL        = smlua_model_util_get_id('jers_powerups_goldball_geo')
+E_MODEL_POWERUP_SHROOM          = smlua_model_util_get_id('jers_powerups_redshroom_geo')
 --E_MODEL_POWERUP_CLOUDFLOWER  = smlua_model_util_get_id('jers_powerups_cloudflower_geo')
---local E_MODEL_POWERUP_STAR = smlua_model_util_get_id("jers_powerups_starman_geo")
+--local E_MODEL_POWERUP_STARMAN = smlua_model_util_get_id("jers_powerups_starman_geo")
 
 SOUND_POWERUP_SAVE = audio_sample_load("jers_powerups_save.ogg")
 SOUND_POWERUP_USE = audio_sample_load("jers_powerups_use.ogg")
@@ -23,6 +24,7 @@ TEX_POWERUP_FIRE    = get_texture_info("jers_powerups_fire_flower")
 TEX_POWERUP_ICE     = get_texture_info("jers_powerups_ice_flower")
 TEX_POWERUP_BUBBLE  = get_texture_info("jers_powerups_bubble_flower")
 TEX_POWERUP_GOLD    = get_texture_info("jers_powerups_gold_flower")
+TEX_POWERUP_SHROOM  = get_texture_info("jers_powerups_super_mushroom")
 TEX_POWERUP_CLOUD   = get_texture_info("jers_powerups_cloud_flower")
 
 POWERUP_METAL     = -3
@@ -33,10 +35,11 @@ POWERUP_FIRE      = 1
 POWERUP_ICE       = 2
 POWERUP_BUBBLE    = 3
 POWERUP_GOLD      = 4
-POWERUP_CLOUD     = 5
-POWERUP_PROPELLER = 6
-POWERUP_SHELL     = 7
-POWERUP_STAR      = 8
+POWERUP_SHROOM    = 5
+POWERUP_CLOUD     = 6
+POWERUP_PROPELLER = 7
+POWERUP_SHELL     = 8
+POWERUP_STAR      = 9
 
 powerupDespawnTime = 15*30
 fireballLifetime = 100
@@ -72,8 +75,9 @@ end
 
 add_power_up(POWERUP_NONE, nil)
 add_power_up(POWERUP_METAL, {model = E_MODEL_MARIOS_METAL_CAP, tex = TEX_POWERUP_METAL, bhv = id_bhvMetalCap,
-    col = {r = 128, g = 128, b = 128}
-})
+    col = {
+    [CAP]       = {r = 128, g = 128, b = 128},
+}})
 add_power_up(POWERUP_VANISH, {model = E_MODEL_MARIOS_CAP, tex = TEX_POWERUP_VANISH, bhv = id_bhvVanishCap})
 add_power_up(POWERUP_WING,   {model = E_MODEL_MARIOS_WING_CAP, tex = TEX_POWERUP_WING, bhv = id_bhvWingCap})
 add_power_up(POWERUP_FIRE,   {model = E_MODEL_POWERUP_FIREFLOWER, tex = TEX_POWERUP_FIRE,
@@ -111,15 +115,9 @@ add_power_up(POWERUP_BUBBLE, {model = E_MODEL_POWERUP_BUBBLEFLOWER, tex = TEX_PO
 }})
 add_power_up(POWERUP_GOLD, {model = E_MODEL_POWERUP_GOLDFLOWER, tex = TEX_POWERUP_GOLD,
     col = {
-    [PANTS]     = nil,
-    [SHIRT]     = nil,
-    [GLOVES]    = nil,
-    [SHOES]     = nil,
-    [HAIR]      = nil,
-    [SKIN]      = nil,
     [CAP]       = {r = 255, g = 200, b = 050},
-    [EMBLEM]    = nil,
 }})
+add_power_up(POWERUP_SHROOM, {model = E_MODEL_POWERUP_SHROOM, tex = TEX_POWERUP_SHROOM})
 --add_power_up(POWERUP_CLOUD, {col = {r = 255, g = 255, b = 255}, model = E_MODEL_POWERUP_CLOUDFLOWER, tex = TEX_POWERUP_CLOUD})
 --add_power_up(POWERUP_PROPELLER, {col = nil, model = E_MODEL_POWERUP_PROPELLERBOX, tex = TEX_POWERUP_PROPELLER})
 --add_power_up(POWERUP_SHELL, {col = nil, model = E_MODEL_POWERUP_BLUESHELL, tex = TEX_POWERUP_SHELL})
@@ -139,7 +137,7 @@ for i = 0, (MAX_PLAYERS - 1) do
         playerG = 0,
         playerB = 0,
         playerCapCol = {r = 0, g = 0, b = 0},
-        powerupStored = mod_storage_load_integer("pocket_item", 0),
+        powerupStored = POWERUP_SHROOM, --mod_storage_load_integer("pocket_item", 0),
         powerupStartTimer = 0,
         powerupFlags = 0,
         displayPowerup = false,
@@ -150,6 +148,8 @@ for i = 0, (MAX_PLAYERS - 1) do
         capTimerSaved = 20*30,
         overrideCapTimer = false,
         prevCharType = 0,
+        shroomScale = 1,
+        shroomScaleTimer = 0,
         CSoverridePalette = {
             fire = nil,
             ice = nil,
@@ -180,7 +180,6 @@ end
 function store_powerup(m, pu)
     local e = gPowerupStates[m.playerIndex]
 
-    --obj_mark_for_deletion(o)
     audio_sample_play(SOUND_POWERUP_SAVE, m.pos, 1)
     e.hudScaleX = 0
     e.hudScaleY = 0
@@ -230,7 +229,8 @@ end
 ---@param type integer Powerup oBehParams
 ---@param sound integer Powerup spawn sound
 function spawn_powerup_manual(x, y, z, velX, velY, angle, type, sound)
-    spawn_sync_object(id_bhvGeneralPowerup, E_MODEL_NONE, x, y, z, function(pu)
+    local bhv = type == POWERUP_SHROOM and id_bhvShroom or id_bhvGeneralPowerup
+    spawn_sync_object(bhv, E_MODEL_NONE, x, y, z, function(pu)
         pu.oForwardVel      = velX
         pu.oVelY            = velY
         pu.oMoveAngleYaw    = angle

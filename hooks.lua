@@ -23,6 +23,7 @@ local function mario_update(m)
     local np = gNetworkPlayers[m.playerIndex]
     local pu = powerupData[e.powerupFlags]
     local isToad = m.character.type == CT_TOAD
+    local isLuigi = m.character.type == CT_LUIGI
     local mario_powerup_throw_type = (e.powerupFlags >= 1 and e.powerupFlags <= 4)
 
     if not e.displayPowerup then
@@ -36,9 +37,7 @@ local function mario_update(m)
             m.marioBodyState.modelState = m.marioBodyState.modelState & ~MODEL_STATE_NOISE_ALPHA
         end
     elseif e.powerupFlags then
-        if m.flags & MARIO_METAL_CAP ~= 0 and m.marioBodyState.modelState & MODEL_STATE_METAL ~= 0 then
-            network_player_set_override_palette_color(np, CAP, powerupData[POWERUP_METAL].col)
-        elseif (e.powerupFlags > 0 and e.powerupFlags < 6) then
+        if (e.powerupFlags > 0 and e.powerupFlags < 6) or e.powerupFlags == POWERUP_METAL then
             if pu and pu.col then
                 if isToad then -- i hate this little bitch for his palette slots
                     local toadCol = pu.col[CAP]
@@ -52,6 +51,8 @@ local function mario_update(m)
                     network_player_set_override_palette_color(np, SHIRT, toadCol)
                     network_player_set_override_palette_color(np, GLOVES, e.playerCapCol)
                     network_player_set_override_palette_color(np, PANTS, e.playerCapCol)
+                elseif isLuigi and e.powerupFlags == POWERUP_GOLD then
+                    network_player_set_override_palette_color(np, CAP, {r = 150, g = 200, b = 255})
                 else
                     for i = 0, PLAYER_PART_MAX - 1 do
                         local colToUse = (pu.col[i] == -1 and e.playerCapCol) or pu.col[i]
@@ -68,6 +69,11 @@ local function mario_update(m)
                 end
             end
         end
+    end
+
+    if e.shroomScale > 0 then
+        m.marioObj.header.gfx.scale.y = math.sin(e.shroomScale * 1.5) * 0.3 + (1.1 - (e.shroomScale/40))
+        e.shroomScale = e.shroomScale - 1
     end
 
     if e.powerupFlags ~= 0 then

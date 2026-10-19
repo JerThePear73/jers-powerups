@@ -1,0 +1,16 @@
+extern const GeoLayout mushroom_1up_geo[];
+extern Lights1 mushroom_1up_Mushroom_Face_Pale_lights;
+extern Lights1 mushroom_1up_Mushroom_Green_lights;
+extern u8 mushroom_1up_mushroom_green_rgba16[];
+extern u8 mushroom_1up_star_eye_rgba16[];
+extern Vtx mushroom_1up_Green_Shroom_mesh_layer_1_vtx_0[21];
+extern Gfx mushroom_1up_Green_Shroom_mesh_layer_1_tri_0[];
+extern Vtx mushroom_1up_Green_Shroom_mesh_layer_1_vtx_1[44];
+extern Gfx mushroom_1up_Green_Shroom_mesh_layer_1_tri_1[];
+extern Vtx mushroom_1up_Green_Shroom_mesh_layer_5_vtx_0[8];
+extern Gfx mushroom_1up_Green_Shroom_mesh_layer_5_tri_0[];
+extern Gfx mat_mushroom_1up_Mushroom_Face_Pale[];
+extern Gfx mat_mushroom_1up_Mushroom_Green[];
+extern Gfx mat_mushroom_1up_Eyes[];
+extern Gfx mushroom_1up_Green_Shroom_mesh_layer_1[];
+extern Gfx mushroom_1up_Green_Shroom_mesh_layer_5[];

@@ -1,0 +1,16 @@
+extern const GeoLayout jers_powerups_redshroom_geo[];
+extern Lights1 jers_powerups_redshroom_Mushroom_Face_Pale_lights;
+extern Lights1 jers_powerups_redshroom_Mushroom_Red_lights;
+extern u8 jers_powerups_redshroom_mushroom_red_rgba16[];
+extern u8 jers_powerups_redshroom_star_eye_rgba16[];
+extern Vtx jers_powerups_redshroom_Red_Shroom_mesh_layer_1_vtx_0[21];
+extern Gfx jers_powerups_redshroom_Red_Shroom_mesh_layer_1_tri_0[];
+extern Vtx jers_powerups_redshroom_Red_Shroom_mesh_layer_1_vtx_1[44];
+extern Gfx jers_powerups_redshroom_Red_Shroom_mesh_layer_1_tri_1[];
+extern Vtx jers_powerups_redshroom_Red_Shroom_mesh_layer_5_vtx_0[8];
+extern Gfx jers_powerups_redshroom_Red_Shroom_mesh_layer_5_tri_0[];
+extern Gfx mat_jers_powerups_redshroom_Mushroom_Face_Pale[];
+extern Gfx mat_jers_powerups_redshroom_Mushroom_Red[];
+extern Gfx mat_jers_powerups_redshroom_Eyes[];
+extern Gfx jers_powerups_redshroom_Red_Shroom_mesh_layer_1[];
+extern Gfx jers_powerups_redshroom_Red_Shroom_mesh_layer_5[];

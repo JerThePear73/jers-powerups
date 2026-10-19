@@ -1,0 +1,17 @@
+#include "src/game/envfx_snow.h"
+
+const GeoLayout jers_powerups_cloudflower_geo[] = {
+	GEO_NODE_START(),
+	GEO_OPEN_NODE(),
+		GEO_SHADOW(0, 180, 75),
+		GEO_OPEN_NODE(),
+			GEO_SCALE(LAYER_FORCE, 65536),
+			GEO_OPEN_NODE(),
+				GEO_DISPLAY_LIST(LAYER_OPAQUE, jers_powerups_cloudflower_Cloud_Flower_mesh_layer_1),
+				GEO_DISPLAY_LIST(LAYER_ALPHA, jers_powerups_cloudflower_Cloud_Flower_mesh_layer_4),
+				GEO_DISPLAY_LIST(LAYER_TRANSPARENT, jers_powerups_cloudflower_Cloud_Flower_mesh_layer_5),
+			GEO_CLOSE_NODE(),
+		GEO_CLOSE_NODE(),
+	GEO_CLOSE_NODE(),
+	GEO_END(),
+};

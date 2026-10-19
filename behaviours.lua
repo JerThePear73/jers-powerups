@@ -65,7 +65,6 @@ id_bhvPowerupStar = hook_behavior(nil, OBJ_LIST_GENACTOR, true, bhv_starman_init
 local function bhv_general_powerup_init(o)
     local model = E_MODEL_1UP
     local hitboxSize = 50
-    --o.oInteractType = INTERACT_CAP
     o.oFlags = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
     o.hitboxRadius      = hitboxSize
     o.hitboxHeight      = hitboxSize
@@ -169,6 +168,101 @@ local function bhv_general_powerup_loop(o)
     end
 end
 id_bhvGeneralPowerup = hook_behavior(nil, OBJ_LIST_GENACTOR, true, bhv_general_powerup_init, bhv_general_powerup_loop, "bhvGeneralPowerup")
+
+---@param o Object
+local function bhv_shroom_init(o)
+    local hitboxSize = 50
+    o.oFlags = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+    o.hitboxRadius      = hitboxSize
+    o.hitboxHeight      = hitboxSize
+    o.oGravity          = 1
+    o.oFriction         = 1
+    o.oBuoyancy         = 1.5
+    o.hitboxDownOffset  = 0
+    o.oDrawingDistance  = 4000
+    o.oGraphYOffset     = 0
+    o.oCapUnkF4         = 0
+    o.oCapUnkF8         = 0x4000
+    o.oTimer            = 0
+
+    obj_set_model_extended(o, E_MODEL_POWERUP_SHROOM)
+    obj_scale(o, 1)
+    cur_obj_become_tangible()
+end
+local function bhv_shroom_loop(o)
+    local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
+    local m = get_mario_state_from_object(nearestMarioObject)
+    local e = gPowerupStates[m.playerIndex]
+
+    local step = object_step()
+    if step & OBJ_COL_FLAG_GROUNDED ~= 0 then
+        if o.oCapUnkF4 == 0 then
+            o.oCapUnkF4 = 1
+            o.oVelY = 0
+        end
+        o.oForwardVel = 5
+    end
+    if o.oCapUnkF4 == 0 and step & OBJ_COL_FLAG_UNDERWATER == 0 then
+        o.oTimer = 0
+    end
+    local range = 40
+    local sparkleX = o.oPosX + math.random(-range, range)
+    local sparkleY = o.oPosY + math.random(-range, range)
+    local sparkleZ = o.oPosZ + math.random(-range, range)
+    local sparkleScale = math.random(1, 8)/10
+    spawn_non_sync_object(id_bhvCoinSparkles, E_MODEL_SPARKLES_ANIMATION, sparkleX, sparkleY, sparkleZ, function(sparkle)
+        obj_scale(sparkle, sparkleScale)
+    end)
+
+    if o.parentObj.oAction ~= -1 and
+    (obj_has_behavior_id(o.parentObj, id_bhvIceCube) ~= 0 or obj_has_behavior_id(o.parentObj, id_bhvPowerupBubble) ~= 0) then
+        o.oPosY = o.parentObj.oPosY + (50 * o.parentObj.header.gfx.scale.y)
+        o.oPosX = o.parentObj.oPosX
+        o.oPosZ = o.parentObj.oPosZ
+        o.oMoveAngleYaw = o.parentObj.oMoveAngleYaw
+        o.oFaceAngleYaw = o.parentObj.parentObj.oFaceAngleYaw
+        o.oMoveAnglePitch = 0
+        o.oMoveAngleRoll = 0
+        o.oFaceAnglePitch = 0
+        o.oFaceAngleRoll = 0
+        o.oVelX = 0
+        o.oVelY = 0
+        o.oVelZ = 0
+        o.oForwardVel = 0
+        o.oTimer = 0
+    end
+
+    if o.oCapUnkF4 == 1 then
+        o.oCapUnkF8 = o.oCapUnkF8 + 0x1000;
+        o.header.gfx.scale.y = coss(o.oCapUnkF8) * 0.3 + 0.7;
+        if (o.oCapUnkF8 == 0x10000) then
+           o.oCapUnkF8 = 0;
+           o.oCapUnkF4 = 2;
+        end
+    end
+
+    o.oFaceAnglePitch = o.oMoveAnglePitch
+    o.oFaceAngleYaw = o.oMoveAngleYaw
+    o.oFaceAngleRoll = o.oMoveAngleRoll
+
+    obj_flicker_and_disappear(o, powerupDespawnTime)
+
+    if obj_check_hitbox_overlap(m.marioObj, o) then
+            if m.health >= 0x0880 then
+                store_powerup(m, POWERUP_SHROOM)
+                obj_mark_for_deletion(o)
+                return
+            else
+                e.shroomScale = 20
+                spawn_mist_particles_with_sound(SOUND_MENU_EXIT_PIPE)
+                play_character_sound(m, CHAR_SOUND_HAHA)
+                m.health = 0x0880
+            end
+        obj_mark_for_deletion(o)
+        return
+    end
+end
+id_bhvShroom = hook_behavior(nil, OBJ_LIST_GENACTOR, true, bhv_shroom_init, bhv_shroom_loop, "bhvShroom")
 
 ---@param o Object
 local function bhv_projectile_init(o)
