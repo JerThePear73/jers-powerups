@@ -83,7 +83,7 @@ add_power_up(POWERUP_METAL, {model = E_MODEL_MARIOS_METAL_CAP, tex = TEX_POWERUP
 }})
 add_power_up(POWERUP_VANISH, {model = E_MODEL_MARIOS_CAP, tex = TEX_POWERUP_VANISH, bhv = id_bhvVanishCap})
 add_power_up(POWERUP_WING,   {model = E_MODEL_MARIOS_WING_CAP, tex = TEX_POWERUP_WING, bhv = id_bhvWingCap})
-add_power_up(POWERUP_FIRE,   {model = E_MODEL_POWERUP_FIREFLOWER, tex = TEX_POWERUP_FIRE,
+add_power_up(POWERUP_FIRE,   {model = E_MODEL_POWERUP_FIREFLOWER, tex = TEX_POWERUP_FIRE, string = "Fire Flower", key = "evilswagPowerupsFire", cost = 50,
     col = {
     [PANTS]     = capCol,
     [SHIRT]     = {r = 255, g = 255, b = 255},
@@ -94,7 +94,7 @@ add_power_up(POWERUP_FIRE,   {model = E_MODEL_POWERUP_FIREFLOWER, tex = TEX_POWE
     [CAP]       = {r = 255, g = 255, b = 255},
     [EMBLEM]    = nil,
 }})
-add_power_up(POWERUP_ICE,    {model = E_MODEL_POWERUP_ICEFLOWER, tex = TEX_POWERUP_ICE,
+add_power_up(POWERUP_ICE,    {model = E_MODEL_POWERUP_ICEFLOWER, tex = TEX_POWERUP_ICE, string = "Ice Flower", key = "evilswagPowerupsIce", cost = 50,
     col = {
     [PANTS]     = capCol,
     [SHIRT]     = {r = 000, g = 170, b = 255},
@@ -105,7 +105,7 @@ add_power_up(POWERUP_ICE,    {model = E_MODEL_POWERUP_ICEFLOWER, tex = TEX_POWER
     [CAP]       = {r = 000, g = 170, b = 255},
     [EMBLEM]    = nil,
 }})
-add_power_up(POWERUP_BUBBLE, {model = E_MODEL_POWERUP_BUBBLEFLOWER, tex = TEX_POWERUP_BUBBLE,
+add_power_up(POWERUP_BUBBLE, {model = E_MODEL_POWERUP_BUBBLEFLOWER, tex = TEX_POWERUP_BUBBLE, string = "Bubble Flower", key = "evilswagPowerupsBubble", cost = 75,
     col = {
     [PANTS]     = capCol,
     [SHIRT]     = {r = 255, g = 128, b = 255},
@@ -116,11 +116,11 @@ add_power_up(POWERUP_BUBBLE, {model = E_MODEL_POWERUP_BUBBLEFLOWER, tex = TEX_PO
     [CAP]       = {r = 255, g = 128, b = 255},
     [EMBLEM]    = nil,
 }})
-add_power_up(POWERUP_GOLD, {model = E_MODEL_POWERUP_GOLDFLOWER, tex = TEX_POWERUP_GOLD,
+add_power_up(POWERUP_GOLD, {model = E_MODEL_POWERUP_GOLDFLOWER, tex = TEX_POWERUP_GOLD, string = "Gold Flower", key = "evilswagPowerupsGold", cost = 200,
     col = {
     [CAP]       = {r = 255, g = 200, b = 050},
 }})
-add_power_up(POWERUP_SHROOM, {model = E_MODEL_POWERUP_SHROOM, tex = TEX_POWERUP_SHROOM})
+add_power_up(POWERUP_SHROOM, {model = E_MODEL_POWERUP_SHROOM, tex = TEX_POWERUP_SHROOM, string = "Super Mushroom", key = "evilswagPowerupsShroom", cost = 25})
 --add_power_up(POWERUP_CLOUD, {col = {r = 255, g = 255, b = 255}, model = E_MODEL_POWERUP_CLOUDFLOWER, tex = TEX_POWERUP_CLOUD})
 --add_power_up(POWERUP_PROPELLER, {col = nil, model = E_MODEL_POWERUP_PROPELLERBOX, tex = TEX_POWERUP_PROPELLER})
 --add_power_up(POWERUP_SHELL, {col = nil, model = E_MODEL_POWERUP_BLUESHELL, tex = TEX_POWERUP_SHELL})
@@ -279,6 +279,24 @@ function reset_on_warp()
 end
 hook_event(HOOK_ON_WARP, reset_on_warp)
 
+-- oins shop
+if _G.betterCoins then
+    for i=1, #powerupData do
+    local pu = powerupData[i]
+    _G.betterCoins.add_shop_item({
+        name = pu.string,
+        key = pu.key,
+        texture = pu.tex,
+        description = "Pocket a "..pu.string.." for later",
+        coins = pu.cost,
+        interact = function(item)
+            store_powerup(gMarioStates[0], i)
+            return true
+        end,
+    })
+    end
+end
+
 -- this is old starman code, figure out what to do with it or smth
 
 -- local function mario_update(m)
@@ -419,18 +437,3 @@ hook_event(HOOK_ON_WARP, reset_on_warp)
 --end
 --
 --hook_event(HOOK_ON_HUD_RENDER_BEHIND, hud_render)
-
--- Capitalism
-if _G.betterCoins then
-    _G.betterCoins.add_shop_item({
-        name = "Fire Flower",
-        key = "evilswagPowerupsFire",
-        texture = TEX_POWERUP_FIRE,
-        description = "Pocket a Fire Flower for later",
-        coins = 25,
-        interact = function(item)
-            gPowerupStates[0].powerupStored = POWERUP_FIRE
-            return true
-        end,
-    })
-end
