@@ -99,7 +99,7 @@ local function bhv_general_powerup_loop(o)
             o.oVelY = 0
         end
     end
-    if step & OBJ_COL_FLAG_UNDERWATER == 0 and o.oVelY ~= 0 then
+    if (step & OBJ_COL_FLAG_UNDERWATER == 0 and o.oVelY ~= 0) or o.oBehParams == POWERUP_GOLD then
         local range = 40
         local sparkleX = o.oPosX + math.random(-range, range)
         local sparkleY = o.oPosY + math.random(-range, range)
@@ -647,10 +647,12 @@ local function bhv_powerup_item_box_loop(o)
     -- 14 = EXCLAMATION_BOX_BP_STAR_ACT_6
     -- 15 = EXCLAMATION_BOX_BP_END
 
+    local powerupToSpawn = math.floor(get_network_area_timer() % #powerupData) + 1 -- math.random will be different for everyone, but in theory get_network_area_timer() should be the same for everybody but I had 1 instance of it spawning a fire and an ice flower. I might be schizophrenic tho
+
     if (o.oBehParams2ndByte >= 4 and o.oBehParams2ndByte <= 9) and o.oBehParams2ndByte ~= 8 then
         if o.oAction == 3 then
             if o.oTimer == 5 then
-                o.oBehParams = math.random(1, #powerupData)
+                o.oBehParams = powerupToSpawn
             elseif o.oTimer == 6 then
                 spawn_powerup_manual(o.oPosX, o.oPosY, o.oPosZ, 5, 15, math.random(0, 0x10000), o.oBehParams, SOUND_GENERAL_GRAND_STAR_JUMP)
             end

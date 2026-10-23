@@ -12,8 +12,8 @@ E_MODEL_POWERUP_SHROOM          = smlua_model_util_get_id('jers_powerups_redshro
 --E_MODEL_POWERUP_CLOUDFLOWER  = smlua_model_util_get_id('jers_powerups_cloudflower_geo')
 --local E_MODEL_POWERUP_STARMAN = smlua_model_util_get_id("jers_powerups_starman_geo")
 
-SOUND_POWERUP_SAVE = audio_sample_load("jers_powerups_save.ogg")
-SOUND_POWERUP_USE = audio_sample_load("jers_powerups_use.ogg")
+SOUND_POWERUP_SAVE  = audio_sample_load("jers_powerups_save.ogg")
+SOUND_POWERUP_USE   = audio_sample_load("jers_powerups_use.ogg")
 
 
 TEX_POWERUP_POCKET  = get_texture_info("jers_powerups_pocket")
@@ -50,6 +50,9 @@ powerupTime = 45
 replaceStarSound = 0
 capCol = -1
 --gLevelValues.hudCapTimer = 1
+
+-- allocate actions to m.actionArg to save action slots
+ARG_THROW = 1336
 
 enemyDrops = {
     [id_bhvSpindrift]   = POWERUP_FIRE,
@@ -137,7 +140,7 @@ for i = 0, (MAX_PLAYERS - 1) do
         playerG = 0,
         playerB = 0,
         playerCapCol = {r = 0, g = 0, b = 0},
-        powerupStored = POWERUP_SHROOM, --mod_storage_load_integer("pocket_item", 0),
+        powerupStored = mod_storage_load_integer("pocket_item", 0),
         powerupStartTimer = 0,
         powerupFlags = 0,
         displayPowerup = false,
@@ -416,3 +419,18 @@ hook_event(HOOK_ON_WARP, reset_on_warp)
 --end
 --
 --hook_event(HOOK_ON_HUD_RENDER_BEHIND, hud_render)
+
+-- Capitalism
+if _G.betterCoins then
+    _G.betterCoins.add_shop_item({
+        name = "Fire Flower",
+        key = "evilswagPowerupsFire",
+        texture = TEX_POWERUP_FIRE,
+        description = "Pocket a Fire Flower for later",
+        coins = 25,
+        interact = function(item)
+            gPowerupStates[0].powerupStored = POWERUP_FIRE
+            return true
+        end,
+    })
+end

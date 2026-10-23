@@ -117,7 +117,7 @@ local function mario_update(m)
         end
     end
 
-    if (m.action == ACT_THROWING or m.action == ACT_AIR_THROW) and m.actionArg == 70 then
+    if (m.action == ACT_THROWING or m.action == ACT_AIR_THROW) and m.actionArg == ARG_THROW then
         local soundFrame = m.action == ACT_THROWING and 5 or -1
 
         if m.action == ACT_AIR_THROW then
@@ -148,7 +148,7 @@ local function mario_update(m)
         end
     end
 
-    if mario_powerup_throw_type and m.capTimer > 5 and m.action == ACT_SIDE_FLIP and m.actionArg == 73 and m.actionTimer == 5 then
+    if mario_powerup_throw_type and m.capTimer > 5 and m.action == ACT_SIDE_FLIP and m.actionArg == 1348 and m.actionTimer == 5 then
         if e.powerupFlags == POWERUP_BUBBLE then
             spawn_bubble_projectile(m, m.faceAngle.y)
             spawn_bubble_projectile(m, m.faceAngle.y - 0x8000)
@@ -156,7 +156,6 @@ local function mario_update(m)
             spawn_fire_or_ice_ball(m, e.powerupFlags, m.faceAngle.y)
             spawn_fire_or_ice_ball(m, e.powerupFlags, m.faceAngle.y - 0x8000)
         end
-        djui_chat_message_create(tostring(m.faceAngle.y - m.marioObj.header.gfx.angle.y))
     end
 
     if m.controller.buttonPressed & Y_BUTTON ~= 0 and m.playerIndex == 0 and e.powerupStored ~= 0 and e.powerupStored ~= nil and m.action & ACT_GROUP_CUTSCENE == 0 then
@@ -185,7 +184,7 @@ local function mario_set_action(m)
     local e = gPowerupStates[m.playerIndex]
     local mario_powerup_throw_type = (e.powerupFlags >= 1 and e.powerupFlags <= 4)
 
-    if m.actionArg == 70 and mario_powerup_throw_type then
+    if m.actionArg == ARG_THROW and mario_powerup_throw_type then
         if m.action == ACT_AIR_THROW then
             m.vel.y = 30
             set_anim_to_frame(m, 0)
@@ -202,13 +201,13 @@ local function mario_before_set_action(m, act)
     local e = gPowerupStates[m.playerIndex]
     local mario_powerup_throw_type = (e.powerupFlags >= 1 and e.powerupFlags <= 4)
 
-    if mario_powerup_throw_type and (act == ACT_JUMP_KICK or (act == ACT_MOVE_PUNCHING and m.input & INPUT_NONZERO_ANALOG ~= 0)) then
+    if mario_powerup_throw_type and (act == ACT_JUMP_KICK or (act == ACT_MOVE_PUNCHING and m.input & INPUT_NONZERO_ANALOG ~= 0)) and m.input & INPUT_B_PRESSED ~= 0 then
         m.faceAngle.y = m.intendedYaw
         m.forwardVel = m.forwardVel * 0.8
         if act == ACT_JUMP_KICK then
-            return set_mario_action(m, ACT_AIR_THROW, 70)
+            return set_mario_action(m, ACT_AIR_THROW, ARG_THROW)
         else
-            return set_mario_action(m, ACT_THROWING, 70)
+            return set_mario_action(m, ACT_THROWING, ARG_THROW)
         end
     end
 end
