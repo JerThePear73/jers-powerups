@@ -2,12 +2,13 @@ local hudDodge = require("libs/hudDodge")
 
 local function hud_render()
     local m = gMarioStates[0]
-    local e = gPowerupStates[0]
+    local e = gPowerupStates[m.playerIndex]
+    local s = gPlayerSyncTable[m.playerIndex]
     djui_hud_set_resolution(RESOLUTION_N64)
     local width = djui_hud_get_screen_width()
     local height = 240
     local puTex = powerupData[e.powerupStored]
-    local puTexTimer = powerupData[e.powerupFlags]
+    local puTexTimer = powerupData[s.powerupFlags]
 
     djui_hud_set_color(255, 255, 255, 255)
     djui_hud_set_font(FONT_HUD)
@@ -47,17 +48,18 @@ local function hud_render()
     -- recreated custom cap timer
     if puTexTimer == nil then
         if m.flags & MARIO_METAL_CAP ~= 0 then
-            e.powerupFlags = POWERUP_METAL
+            s.powerupFlags = POWERUP_METAL
         elseif m.flags & MARIO_VANISH_CAP ~= 0 then
-            e.powerupFlags = POWERUP_VANISH
+            s.powerupFlags = POWERUP_VANISH
         elseif m.flags & MARIO_WING_CAP ~= 0 then
-            e.powerupFlags = POWERUP_WING
+            s.powerupFlags = POWERUP_WING
         end
     end
-    if m.capTimer > 1 and e.powerupFlags ~= nil and not hud_is_hidden() and puTexTimer ~= nil and (e.powerupFlags > 0 or gLevelValues.hudCapTimer ~= 1) then -- checks if coop cap timer is enabled
+    local capTimerToCheck = s.capTimer2 --s.powerupFlags < 0 and m.capTimer or s.capTimer2
+    if capTimerToCheck > 1 and s.powerupFlags ~= nil and not hud_is_hidden() and puTexTimer ~= nil and (s.powerupFlags > 0 or gLevelValues.hudCapTimer ~= 1) then -- checks if coop cap timer is enabled
         djui_hud_render_texture(puTexTimer.tex, 21, 35, 1, 1)
         djui_hud_print_text("@", 38, 35, 1, 1)
-        djui_hud_print_text(tostring(math.floor(m.capTimer/30)+1), 52, 35, 1, 1)
+        djui_hud_print_text(tostring(math.floor(capTimerToCheck/30)+1), 52, 35, 1, 1)
     end
 
     -- debug

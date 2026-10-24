@@ -27,6 +27,7 @@ TEX_POWERUP_GOLD    = get_texture_info("jers_powerups_gold_flower")
 TEX_POWERUP_SHROOM  = get_texture_info("jers_powerups_super_mushroom")
 TEX_POWERUP_CLOUD   = get_texture_info("jers_powerups_cloud_flower")
 
+POWERUP_MASTER    = -4
 POWERUP_METAL     = -3
 POWERUP_VANISH    = -2
 POWERUP_WING      = -1
@@ -49,6 +50,9 @@ goldballLifetime = 40
 powerupTime = 45
 replaceStarSound = 0
 capCol = -1
+id_bhvMasterCapBox = get_id_from_behavior_name("bhvMasterCapBox")
+id_bhvShopkeeper = get_id_from_behavior_name("bhvShopkeeper")
+
 --gLevelValues.hudCapTimer = 1
 
 -- allocate actions to m.actionArg to save action slots
@@ -77,12 +81,12 @@ function add_power_up(item, data)
 end
 
 add_power_up(POWERUP_NONE, nil)
-add_power_up(POWERUP_METAL, {model = E_MODEL_MARIOS_METAL_CAP, tex = TEX_POWERUP_METAL, bhv = id_bhvMetalCap,
+add_power_up(POWERUP_METAL, {model = E_MODEL_MARIOS_METAL_CAP, tex = TEX_POWERUP_METAL, bhv = id_bhvMetalCap, string = "Metal Cap", key = "evilswagPowerupsMetal", cost = 150,
     col = {
     [CAP]       = {r = 128, g = 128, b = 128},
 }})
-add_power_up(POWERUP_VANISH, {model = E_MODEL_MARIOS_CAP, tex = TEX_POWERUP_VANISH, bhv = id_bhvVanishCap})
-add_power_up(POWERUP_WING,   {model = E_MODEL_MARIOS_WING_CAP, tex = TEX_POWERUP_WING, bhv = id_bhvWingCap})
+add_power_up(POWERUP_VANISH, {model = E_MODEL_MARIOS_CAP, tex = TEX_POWERUP_VANISH, bhv = id_bhvVanishCap, string = "Vanish Cap", key = "evilswagPowerupsVansih", cost = 150,})
+add_power_up(POWERUP_WING,   {model = E_MODEL_MARIOS_WING_CAP, tex = TEX_POWERUP_WING, bhv = id_bhvWingCap, string = "Wing Cap", key = "evilswagPowerupsWing", cost = 300,})
 add_power_up(POWERUP_FIRE,   {model = E_MODEL_POWERUP_FIREFLOWER, tex = TEX_POWERUP_FIRE, string = "Fire Flower", key = "evilswagPowerupsFire", cost = 50,
     col = {
     [PANTS]     = capCol,
@@ -136,19 +140,21 @@ for i = 0, (MAX_PLAYERS - 1) do
     gPowerupStates[i] = {
         hasStarman = false,
         starmanTimer = 0,
+        masterCapEffectTimer = 0,
         playerR = 255,
         playerG = 0,
         playerB = 0,
         playerCapCol = {r = 0, g = 0, b = 0},
         powerupStored = mod_storage_load_integer("pocket_item", 0),
         powerupStartTimer = 0,
-        powerupFlags = 0,
+        --powerupFlags = 0,
         displayPowerup = false,
         hudScaleX = 1,
         hudScaleY = 1,
         hudPosY = 35,
         hudDance = 0,
         capTimerSaved = 20*30,
+        --capTimer2 = 0,
         overrideCapTimer = false,
         prevCharType = 0,
         shroomScale = 1,
@@ -159,8 +165,10 @@ for i = 0, (MAX_PLAYERS - 1) do
             bubble = nil,
         },
         CSmenuCheck = true,
+        masterCapRunning = false,
     }
-    --gPlayerSyncTable[i].
+    gPlayerSyncTable[i].powerupFlags = 0
+    gPlayerSyncTable[i].capTimer2 = 0
 end
 
 function set_cap_vol()
@@ -262,9 +270,11 @@ function spawn_visual_coins(parent, numCoins)
     end
 end
 
-function reset_on_warp()
-    local e = gPowerupStates[0]
-    local np = gNetworkPlayers[0]
+function reset_on_warp(type, level, area)
+    local m = gMarioStates[0]
+    local e = gPowerupStates[m.playerIndex]
+    local s = gPlayerSyncTable[m.playerIndex]
+    local np = gNetworkPlayers[m.playerIndex]
 
     -- if e.hasStarman then
     --     network_player_reset_override_palette(np)
@@ -273,27 +283,92 @@ function reset_on_warp()
     --     e.starmanTimer = 0
     -- end
 
-    e.powerupFlags = 0
-    e.displayPowerup = false
-    network_player_reset_override_palette(np)
+    if level == LEVEL_VCUTM then
+        s.capTimer2 = gLevelValues.vanishCapDurationVcutm
+        s.powerupFlags = POWERUP_VANISH
+        e.powerupStartTimer = 20
+        play_sound(SOUND_MENU_EXIT_PIPE, m.marioObj.header.gfx.cameraToObject)
+    elseif level == LEVEL_COTMC then
+        s.capTimer2 = gLevelValues.metalCapDurationCotmc
+        s.powerupFlags = POWERUP_METAL
+        e.powerupStartTimer = 20
+        play_sound(SOUND_MENU_EXIT_PIPE, m.marioObj.header.gfx.cameraToObject)
+    elseif level == LEVEL_TOTWC then
+        s.capTimer2 = gLevelValues.wingCapDurationTotwc
+        s.powerupFlags = POWERUP_WING
+        e.powerupStartTimer = 20
+        play_sound(SOUND_MENU_EXIT_PIPE, m.marioObj.header.gfx.cameraToObject)
+    else
+        if s.capTimer2 > 0 then
+            s.capTimer2 = 1
+        end
+    end
 end
 hook_event(HOOK_ON_WARP, reset_on_warp)
 
+function do_master_cap_effect(m)
+    local e = gPowerupStates[m.playerIndex]
+    local threshold = 50
+    local lerpRate = 0.1
+    if e.masterCapEffectTimer == 0 then
+        e.playerR = math.lerp(e.playerR, 0, lerpRate)
+        if e.playerR < threshold then
+            e.playerG = 255
+            e.masterCapEffectTimer = 1
+        end
+    elseif e.masterCapEffectTimer == 1 then
+        e.playerG = math.lerp(e.playerG, 0, lerpRate)
+        if e.playerG < threshold then
+            e.playerB = 255
+            e.masterCapEffectTimer = 2
+        end
+    elseif e.masterCapEffectTimer == 2 then
+        e.playerB = math.lerp(e.playerB, 0, lerpRate)
+        if e.playerB < threshold then
+            e.playerR = 255
+            e.masterCapEffectTimer = 0
+        end
+    end
+end
+
 -- oins shop
 if _G.betterCoins then
+    for i=1, 3 do
+        local pu = powerupData[0 - i]
+        _G.betterCoins.add_shop_item({
+            name = pu.string,
+            key = pu.key,
+            texture = pu.tex,
+            description = "You want a "..pu.string.."? \n\nIt's yours my friend.",
+            coins = pu.cost,
+            interact = function(item)
+                local m = gMarioStates[0]
+                local o = obj_get_nearest_object_with_behavior_id(m.marioObj, id_bhvShopkeeper)
+                spawn_sync_object(pu.bhv, pu.model, o.oPosX, o.oPosY + 100, o.oPosZ, function(cap)
+                    cap.oVelY = 25
+                    cap.oForwardVel = 3
+                    cap.oMoveAngleYaw = o.oFaceAngleYaw
+                    cap.oFaceAngleYaw = o.oFaceAngleYaw
+                end)
+                return true
+            end,
+        })
+    end
     for i=1, #powerupData do
-    local pu = powerupData[i]
-    _G.betterCoins.add_shop_item({
-        name = pu.string,
-        key = pu.key,
-        texture = pu.tex,
-        description = "Pocket a "..pu.string.." for later",
-        coins = pu.cost,
-        interact = function(item)
-            store_powerup(gMarioStates[0], i)
-            return true
-        end,
-    })
+        local pu = powerupData[i]
+        _G.betterCoins.add_shop_item({
+            name = pu.string,
+            key = pu.key,
+            texture = pu.tex,
+            description = "You want a "..pu.string.."? \n\nIt's yours my friend.",
+            coins = pu.cost,
+            interact = function(item)
+                local m = gMarioStates[0]
+                local o = obj_get_nearest_object_with_behavior_id(m.marioObj, id_bhvShopkeeper)
+                spawn_powerup_manual(o.oPosX, o.oPosY + 100, o.oPosZ, 3, 25, o.oFaceAngleYaw, i, SOUND_GENERAL_COIN_SPURT)
+                return true
+            end,
+        })
     end
 end
 

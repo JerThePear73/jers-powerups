@@ -47,7 +47,7 @@ local function bhv_starman_loop(o)
         nil)
 
     if obj_check_hitbox_overlap(m.marioObj, o) then
-        m.capTimer = 30*30
+        s.capTimer2 = 30*30
         obj_mark_for_deletion(o)
         cur_obj_play_sound_2(SOUND_MENU_STAR_SOUND)
         play_character_sound(m, CHAR_SOUND_HERE_WE_GO)
@@ -91,6 +91,7 @@ local function bhv_general_powerup_loop(o)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     local e = gPowerupStates[m.playerIndex]
+    local s = gPlayerSyncTable[m.playerIndex]
 
     local step = object_step_without_floor_orient()
     if step & OBJ_COL_FLAG_GROUNDED ~= 0 then
@@ -147,7 +148,7 @@ local function bhv_general_powerup_loop(o)
 
     if obj_check_hitbox_overlap(m.marioObj, o) then
         if o.oBehParams ~= nil then
-            if e.powerupFlags == o.oBehParams then --and e.powerupStored ~= o.oBehParams then -- this doesn't sync properly for some reason so for now custom powerups will just always be stored.
+            if s.powerupFlags == o.oBehParams or e.masterCapRunning then --and e.powerupStored ~= o.oBehParams then -- this doesn't sync properly for some reason so for now custom powerups will just always be stored.
                 store_powerup(m, o.oBehParams)
                 obj_mark_for_deletion(o)
                 return
@@ -155,8 +156,8 @@ local function bhv_general_powerup_loop(o)
                 e.powerupStartTimer = 20
                 spawn_mist_particles_with_sound(SOUND_MENU_EXIT_PIPE)
                 play_character_sound(m, CHAR_SOUND_HERE_WE_GO)
-                e.powerupFlags = o.oBehParams
-                m.capTimer = (o.oBehParams == POWERUP_GOLD and 15 or powerupTime)*30
+                s.powerupFlags = o.oBehParams
+                s.capTimer2 = (o.oBehParams == POWERUP_GOLD and 15 or powerupTime)*30
                 m.flags = m.flags & ~MARIO_WING_CAP
                 m.flags = m.flags & ~MARIO_VANISH_CAP
                 m.flags = m.flags & ~MARIO_METAL_CAP
@@ -305,11 +306,11 @@ local function bhv_projectile_loop(o)
     local step = object_step_without_floor_orient()
     if step & OBJ_COL_FLAGS_LANDED ~= 0 then
         o.oVelY = 30
-        if puType == POWERUP_GOLD and step & OBJ_COL_FLAG_UNDERWATER == 0 and o.oCapUnkF4 > 7 then
-            spawn_non_sync_object(id_bhvSingleCoinGetsSpawned, E_MODEL_YELLOW_COIN, o.oPosX, o.oPosY, o.oPosZ, function(coin)
-                coin.oVelY = 20
-            end)
-        end
+        -- if puType == POWERUP_GOLD and step & OBJ_COL_FLAG_UNDERWATER == 0 and o.oCapUnkF4 > 7 then
+        --     spawn_non_sync_object(id_bhvSingleCoinGetsSpawned, E_MODEL_YELLOW_COIN, o.oPosX, o.oPosY, o.oPosZ, function(coin)
+        --         coin.oVelY = 20
+        --     end)
+        -- end
         o.oCapUnkF4 = 0
     end
     if step & OBJ_COL_FLAG_HIT_WALL ~= 0 then
@@ -627,6 +628,9 @@ end
 hook_behavior(id_bhvMrBlizzard, get_object_list_from_behavior(get_behavior_from_id(id_bhvMrBlizzard)), false, nil, bhv_powerup_snowman_loop, "bhvMrBlizzardPowerup")
 
 local function bhv_powerup_item_box_loop(o)
+    local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
+    local m = get_mario_state_from_object(nearestMarioObject)
+    local e = gPowerupStates[m.playerIndex]
     -- oBehParams2ndByte determins what is in the box
     -- it's an index for a table in exclamation_box.inc.c
 
@@ -647,7 +651,7 @@ local function bhv_powerup_item_box_loop(o)
     -- 14 = EXCLAMATION_BOX_BP_STAR_ACT_6
     -- 15 = EXCLAMATION_BOX_BP_END
 
-    local powerupToSpawn = math.floor(get_network_area_timer() % #powerupData) + 1 -- math.random will be different for everyone, but in theory get_network_area_timer() should be the same for everybody but I had 1 instance of it spawning a fire and an ice flower. I might be schizophrenic tho
+    local powerupToSpawn = not e.masterCapRunning and math.floor(get_network_area_timer() % #powerupData) + 1 or POWERUP_SHROOM -- math.random will be different for everyone, but in theory get_network_area_timer() should be the same for everybody but I had 1 instance of it spawning a fire and an ice flower. I might be schizophrenic tho
 
     if (o.oBehParams2ndByte >= 4 and o.oBehParams2ndByte <= 9) and o.oBehParams2ndByte ~= 8 then
         if o.oAction == 3 then
@@ -660,3 +664,16 @@ local function bhv_powerup_item_box_loop(o)
     end
 end
 hook_behavior(id_bhvExclamationBox, get_object_list_from_behavior(get_behavior_from_id(id_bhvExclamationBox)), false, nil, bhv_powerup_item_box_loop, "bhvExclamationBoxPowerup")
+
+local function bhv_powerup_master_cap_box(o)
+    local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
+    local m = get_mario_state_from_object(nearestMarioObject)
+    local e = gPowerupStates[m.playerIndex]
+    local s = gPlayerSyncTable[m.playerIndex]
+    if o.oAction == 3 then
+        e.powerupStartTimer = 20
+        s.powerupFlags = POWERUP_MASTER
+        e.masterCapRunning = true
+    end
+end
+hook_behavior(id_bhvMasterCapBox, get_object_list_from_behavior(get_behavior_from_id(id_bhvMasterCapBox)), false, nil, bhv_powerup_master_cap_box, "bhvMasterCapBoxPowerup")
