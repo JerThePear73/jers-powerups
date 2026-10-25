@@ -102,7 +102,8 @@ local function mario_update(m)
                     e.displayPowerup = false
                 end
                 s.powerupFlags = 0
-            elseif (e.powerupStartTimer > 0 or (s.capTimer2 < 90 and (m.flags & MARIO_WING_CAP == 0 or m.flags & MARIO_METAL_CAP ~= 0))) and (s.capTimer2 % frameSkip) == 0 then
+            elseif ((e.powerupStartTimer > 0 and (e.powerupStartTimer % frameSkip) == 0)
+            or (s.capTimer2 < 90 and (m.flags & MARIO_WING_CAP == 0 or m.flags & MARIO_METAL_CAP ~= 0)) and (s.capTimer2 % frameSkip) == 0) then
                 network_player_reset_override_palette(np)
                 e.displayPowerup = false
             elseif e.prevCharType ~= m.character.type then
@@ -153,7 +154,7 @@ local function mario_update(m)
     end
 
     -- evilswag moveset compat
-    if mario_powerup_throw_type and s.capTimer2 > 5 and m.action == ACT_SIDE_FLIP and m.actionArg == 1348 and m.actionTimer == 5 then
+    if mario_powerup_throw_type and s.capTimer2 > 5 and m.action == ACT_SIDE_FLIP and m.actionArg == 73 and m.actionTimer == 5 then
         if s.powerupFlags == POWERUP_BUBBLE then
             spawn_bubble_projectile(m, m.faceAngle.y)
             spawn_bubble_projectile(m, m.faceAngle.y - 0x8000)
@@ -163,7 +164,7 @@ local function mario_update(m)
         end
     end
 
-    if m.controller.buttonPressed & Y_BUTTON ~= 0 and m.playerIndex == 0 and e.powerupStored ~= 0 and e.powerupStored ~= nil and m.action & ACT_GROUP_CUTSCENE == 0 then
+    if m.playerIndex == 0 and e.powerupStored ~= 0 and e.powerupStored ~= nil and m.action & ACT_GROUP_CUTSCENE == 0 and (m.controller.buttonPressed & e.hudPocketInput ~= 0) then
         local spawnBhv = 0
         local spawnModel = E_MODEL_NONE
         if e.powerupStored < 0 then
@@ -191,12 +192,16 @@ local function mario_update(m)
             e.masterCapRunning = false
             s.capTimer2 = 1
         end
-    elseif s.capTimer2 > 0
-    and m.action ~= ACT_READING_AUTOMATIC_DIALOG
-    and m.action ~= ACT_READING_NPC_DIALOG
-    and m.action ~= ACT_READING_SIGN
-    and m.action ~= ACT_IN_CANNON then
-        s.capTimer2 = s.capTimer2 - 1
+    elseif s.capTimer2 > 0 then
+    -- and m.action ~= ACT_READING_AUTOMATIC_DIALOG
+    -- and m.action ~= ACT_READING_NPC_DIALOG
+    -- and m.action ~= ACT_READING_SIGN
+    -- and m.action ~= ACT_IN_CANNON then
+        if m.action & ACT_FLAG_INTANGIBLE == 0 or m.action == ACT_PUTTING_ON_CAP then
+            s.capTimer2 = s.capTimer2 - 1
+        elseif m.flags & MARIO_METAL_CAP ~= 0 then
+            m.marioBodyState.modelState = m.marioBodyState.modelState | MODEL_STATE_METAL
+        end
         m.capTimer = s.capTimer2
     end
 end

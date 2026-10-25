@@ -74,6 +74,11 @@ vanillaPowerups = {
     [id_bhvWingCap]     = {checkFlag = MARIO_WING_CAP,      pu = POWERUP_WING},
 }
 
+pocketItemInput = {
+    [Y_BUTTON] = {offset =  0, string = "(Y) Button"},
+    [X_BUTTON] = {offset = 32, string = "(X) Button"},
+}
+
 powerupData = {}
 
 function add_power_up(item, data)
@@ -151,8 +156,18 @@ for i = 0, (MAX_PLAYERS - 1) do
         displayPowerup = false,
         hudScaleX = 1,
         hudScaleY = 1,
+        hudItemPos = {
+            x = 36,
+            y = 34,
+            z = 0
+        },
         hudPosY = 35,
         hudDance = 0,
+        hudPocketInput = mod_storage_load_integer("item_input", Y_BUTTON),
+        hudPocketPos = {
+            x = mod_storage_load_integer("item_pos_x", 0),
+            y = mod_storage_load_integer("item_pos_y", 0),
+        },
         capTimerSaved = 20*30,
         --capTimer2 = 0,
         overrideCapTimer = false,
@@ -197,6 +212,9 @@ function store_powerup(m, pu)
     e.hudDance = 0
     e.powerupStored = pu
     mod_storage_save_integer("pocket_item", pu)
+
+    djui_hud_set_resolution(RESOLUTION_N64)
+    djui_hud_world_pos_to_screen_pos(m.pos, e.hudItemPos)
 end
 
 ---@param m MarioState
@@ -256,13 +274,13 @@ end
 ---@param numCoins integer how many visual coins to spawn
 function spawn_visual_coins(parent, numCoins)
     if numCoins == 5 then
-        spawn_sync_object(id_bhvVisualCoins, E_MODEL_BLUE_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
+        spawn_non_sync_object(id_bhvVisualCoins, E_MODEL_BLUE_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
             coins.parentObj = parent
             coins.oBehParams = 1
         end)
     else
         for i=1, numCoins do
-            spawn_sync_object(id_bhvVisualCoins, E_MODEL_YELLOW_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
+            spawn_non_sync_object(id_bhvVisualCoins, E_MODEL_YELLOW_COIN_NO_SHADOW, parent.oPosX, parent.oPosY, parent.oPosZ, function(coins)
                 coins.parentObj = parent
                 coins.oBehParams = i
             end)
@@ -299,9 +317,9 @@ function reset_on_warp(type, level, area)
         e.powerupStartTimer = 20
         play_sound(SOUND_MENU_EXIT_PIPE, m.marioObj.header.gfx.cameraToObject)
     else
-        if s.capTimer2 > 0 then
-            s.capTimer2 = 1
-        end
+        s.capTimer2 = 0
+        e.displayPowerup = false
+        network_player_reset_override_palette(np)
     end
 end
 hook_event(HOOK_ON_WARP, reset_on_warp)
