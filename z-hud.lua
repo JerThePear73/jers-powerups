@@ -16,23 +16,25 @@ local function hud_render()
     if gNetworkPlayers[0].currActNum == 99 or gMarioStates[0].action == ACT_INTRO_CUTSCENE or obj_get_first_with_behavior_id(id_bhvActSelector) or (_G.charSelectExists and charSelect.is_menu_open()) then return end
 
     -- pocket item
-    local pocketX, pocketY = hudDodge.find_open_hud_space(e.hudPocketPos.x, e.hudPocketPos.y, 32, 32, 0, 1, 3)
-    --local pocketX = 20
-    --local pocketY = (m.capTimer < 1) and 34 or 54
-    local hardX = 20
+    --local pocketX, pocketY = hudDodge.find_open_hud_space(e.hudPocketPos.x, e.hudPocketPos.y, 32, 32, 0, 1, 3) -- I am so incredibly fucking stupid its not even funny anymore
+    local pocketX = pocketItemLayouts[e.hudPocketPos].x
+    local pocketY = pocketItemLayouts[e.hudPocketPos].y + ((m.capTimer > 0 and e.hudPocketPos == 0) and 20 or 0)
+
+    --if not is_game_paused() then
+    e.hudScaleX = math.lerp(e.hudScaleX, 1, 0.2)
+    e.hudScaleY = e.hudDance == 0 and math.lerp(e.hudScaleY, 1, 0.2) or (math.abs(math.sin(e.hudDance * 0.2))/4 + 0.75)
+    e.hudItemPos.x = math.lerp(e.hudItemPos.x, e.hudPos.x + 16, 0.3)
+    e.hudItemPos.y = math.lerp(e.hudItemPos.y, e.hudPos.y + 24, 0.3)
+    e.hudPos.x = math.lerp(e.hudPos.x, pocketX, 0.2)
+    e.hudPos.y = math.lerp(e.hudPos.y, pocketY, 0.2)
+    --end
 
     if not is_game_paused() then
-        e.hudScaleX = math.lerp(e.hudScaleX, 1, 0.2)
-        e.hudScaleY = e.hudDance == 0 and math.lerp(e.hudScaleY, 1, 0.2) or (math.abs(math.sin(e.hudDance * 0.2))/4 + 0.75)
-        e.hudPosY = math.lerp(e.hudPosY, pocketY, 0.2)
-        e.hudItemPos.x = math.lerp(e.hudItemPos.x, pocketX + 16, 0.3)
-        e.hudItemPos.y = math.lerp(e.hudItemPos.y, e.hudPosY + 24, 0.3)
-    end
-
-    if e.hudDance > 0 then
-        e.hudDance = e.hudDance - 1
-    elseif e.hudScaleY > 0.9999 and (get_global_timer() % 200) == 0 then
-        e.hudDance = 35
+        if e.hudDance > 0 then
+            e.hudDance = e.hudDance - 1
+        elseif e.hudScaleY > 0.9999 and (get_global_timer() % 200) == 0 then
+            e.hudDance = 35
+        end
     end
 
     djui_hud_set_color(255, 0, 0, 0)
@@ -40,14 +42,14 @@ local function hud_render()
     djui_hud_set_color(255, 255, 255, 255)
 
     local scaleThreshold = 0.99
-    local itemPosX = e.hudScaleX < scaleThreshold and e.hudItemPos.x or pocketX + 16
-    local itemPosY = e.hudScaleX < scaleThreshold and e.hudItemPos.y or e.hudPosY + 24
-    if not djui_hud_is_pause_menu_created() then
-        djui_hud_render_texture_tile(TEX_POWERUP_POCKET, pocketX, e.hudPosY, 1, 1, pocketItemInput[e.hudPocketInput].offset, 0, 32, 32)
+    local itemPosX = e.hudScaleX < scaleThreshold and e.hudItemPos.x or e.hudPos.x + 16
+    local itemPosY = e.hudScaleX < scaleThreshold and e.hudItemPos.y or e.hudPos.y + 24
+    --if not djui_hud_is_pause_menu_created() then
+        djui_hud_render_texture_tile(TEX_POWERUP_POCKET, e.hudPos.x, e.hudPos.y, 1, 1, pocketItemInput[e.hudPocketInput].offset, 0, 32, 32)
         if e.powerupStored ~= 0 and e.powerupStored ~= nil and puTex ~= nil then
             djui_hud_render_texture(puTex.tex, itemPosX - (8 * e.hudScaleX), itemPosY - (16 * e.hudScaleY), e.hudScaleX, e.hudScaleY)
         end
-    end
+    --end
 
     -- recreated custom cap timer
     if puTexTimer == nil then
@@ -83,37 +85,11 @@ hook_mod_menu_button("(X) Button", function()
 end)
 
 hook_mod_menu_text("Backup item hud position:")
-hook_mod_menu_button("Top Left", function()
-    local m = gMarioStates[0]
-    local e = gPowerupStates[m.playerIndex]
-    e.hudPocketPos.x = 20
-    e.hudPocketPos.y = 0
-    mod_storage_save_integer("item_pos_x", e.hudPocketPos.x)
-    mod_storage_save_integer("item_pos_y", e.hudPocketPos.y)
-end)
-hook_mod_menu_button("Bottom Left", function()
-    local m = gMarioStates[0]
-    local e = gPowerupStates[m.playerIndex]
-    e.hudPocketPos.x = 20
-    e.hudPocketPos.y = 240
-    mod_storage_save_integer("item_pos_x", e.hudPocketPos.x)
-    mod_storage_save_integer("item_pos_y", e.hudPocketPos.y)
-end)
-hook_mod_menu_button("Top Right", function()
-    local m = gMarioStates[0]
-    local e = gPowerupStates[m.playerIndex]
-    djui_hud_set_resolution(RESOLUTION_N64)
-    e.hudPocketPos.x = djui_hud_get_screen_width()
-    e.hudPocketPos.y = 0
-    mod_storage_save_integer("item_pos_x", e.hudPocketPos.x)
-    mod_storage_save_integer("item_pos_y", e.hudPocketPos.y)
-end)
-hook_mod_menu_button("Bottom Right", function()
-    local m = gMarioStates[0]
-    local e = gPowerupStates[m.playerIndex]
-    djui_hud_set_resolution(RESOLUTION_N64)
-    e.hudPocketPos.x = djui_hud_get_screen_width()
-    e.hudPocketPos.y = 240
-    mod_storage_save_integer("item_pos_x", e.hudPocketPos.x)
-    mod_storage_save_integer("item_pos_y", e.hudPocketPos.y)
-end)
+for i=0, #pocketItemLayouts do
+    hook_mod_menu_button(pocketItemLayouts[i].string, function()
+        local m = gMarioStates[0]
+        local e = gPowerupStates[m.playerIndex]
+        e.hudPocketPos = i
+        mod_storage_save_integer("item_pos", e.hudPocketPos)
+    end)
+end

@@ -79,6 +79,13 @@ pocketItemInput = {
     [X_BUTTON] = {offset = 32, string = "(X) Button"},
 }
 
+pocketItemLayouts = {
+    [0] = {x = 23,                               y =  34, string = "Top Left"},
+    [1] = {x = djui_hud_get_screen_width() - 54, y =  34, string = "Top Right"},
+    [2] = {x = 23,                               y = 190, string = "Bottom Left"},
+    [3] = {x = djui_hud_get_screen_width() - 54, y = 164, string = "Bottom Right"},
+}
+
 powerupData = {}
 
 function add_power_up(item, data)
@@ -157,17 +164,17 @@ for i = 0, (MAX_PLAYERS - 1) do
         hudScaleX = 1,
         hudScaleY = 1,
         hudItemPos = {
-            x = 36,
-            y = 34,
+            x = 23 + 16,
+            y = 34 + 16,
             z = 0
         },
-        hudPosY = 35,
+        hudPos = {
+            x = 23,
+            y = 34,
+        },
         hudDance = 0,
         hudPocketInput = mod_storage_load_integer("item_input", Y_BUTTON),
-        hudPocketPos = {
-            x = mod_storage_load_integer("item_pos_x", 0),
-            y = mod_storage_load_integer("item_pos_y", 0),
-        },
+        hudPocketPos = mod_storage_load_integer("item_pos", 0),
         capTimerSaved = 20*30,
         --capTimer2 = 0,
         overrideCapTimer = false,
