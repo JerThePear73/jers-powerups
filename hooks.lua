@@ -287,6 +287,10 @@ local function mario_interact(m, o, type)
     if obj_has_behavior_id(o, id_bhvMasterCapBox) ~= 0 and o.oInteractStatus & INT_STATUS_WAS_ATTACKED ~= 0 then
         s.capTimer2 = 1
     end
+
+    if s.capTimer2 > 0 and type == INTERACT_COIN then
+        s.capTimer2 = s.capTimer2 + 25*o.oDamageOrCoinValue
+    end
 end
 hook_event(HOOK_ON_INTERACT, mario_interact)
 
@@ -308,10 +312,6 @@ local function before_mario_interact(m, o, type)
             e.capTimerSaved = s.capTimer2
             replaceStarSound = 2
         end
-    end
-
-    if s.capTimer2 > 0 then
-        s.capTimer2 = s.capTimer2 + 25*o.oDamageOrCoinValue
     end
 end
 hook_event(HOOK_ALLOW_INTERACT, before_mario_interact)
