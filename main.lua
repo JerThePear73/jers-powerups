@@ -1,2 +1,2 @@
 -- name: \\#0f0\\Ev\\#8f0\\il\\#af0\\sw\\#ff0\\ag Powerups [WIP]
--- description: My awesome powerups mod that MIGHT work!!!
+-- description: My awesome powerups mod that does not fucking work!!!

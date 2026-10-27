@@ -364,6 +364,7 @@ local function bhv_projectile_loop(o)
         o.oAction = -1
     end
     if o.oAction == -1 then
+        spawn_mist_particles_with_sound(SOUND_OBJ_DEFAULT_DEATH)
         obj_mark_for_deletion(o)
         return
     elseif o.oAction == 1 then
