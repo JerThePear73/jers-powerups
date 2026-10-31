@@ -686,6 +686,7 @@ if _G.betterCoins then
 local function bhv_powerup_master_cap_box(o)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
+    if not m then return end
     local e = gPowerupStates[m.playerIndex]
     local s = gPlayerSyncTable[m.playerIndex]
     if o.oAction == 3 then

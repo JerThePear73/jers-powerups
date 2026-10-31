@@ -266,7 +266,7 @@ local function mario_update(m)
             e.masterCapRunning = false
             s.capTimer2 = 1
         end
-    elseif s.capTimer2 > 0 and s.powerupFlags ~= 0 and s.powerupFlags ~= POWERUP_MASTER then
+    elseif s.capTimer2 > 0 and s.powerupFlags ~= 0 then
     -- and m.action ~= ACT_READING_AUTOMATIC_DIALOG
     -- and m.action ~= ACT_READING_NPC_DIALOG
     -- and m.action ~= ACT_READING_SIGN
