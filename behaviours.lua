@@ -353,9 +353,7 @@ local function bhv_projectile_loop(o)
     local offsetX = math.random(-range, range)
     local offsetY = math.random(-range, range) + o.oGraphYOffset/2
     local offsetZ = math.random(-range, range)
-    spawn_non_sync_object(id_bhvCoinSparkles, projData[puType].trail, o.oPosX + offsetX, o.oPosY + offsetY, o.oPosZ + offsetZ, function(particle)
-        obj_scale(particle, 1)
-    end)
+    spawn_non_sync_object(id_bhvShrinkParticle, projData[puType].trail, o.oPosX + offsetX, o.oPosY + offsetY, o.oPosZ + offsetZ, nil)
     o.oFaceAnglePitch = o.oFaceAnglePitch + 0x1200
     o.oFaceAngleYaw = o.oMoveAngleYaw
 
