@@ -266,7 +266,7 @@ local function mario_update(m)
             e.masterCapRunning = false
             s.capTimer2 = 1
         end
-    elseif s.capTimer2 > 0 then
+    elseif s.capTimer2 > 0 and s.powerupFlags ~= 0 and s.powerupFlags ~= POWERUP_MASTER then
     -- and m.action ~= ACT_READING_AUTOMATIC_DIALOG
     -- and m.action ~= ACT_READING_NPC_DIALOG
     -- and m.action ~= ACT_READING_SIGN
@@ -358,7 +358,7 @@ local function mario_interact(m, o, type)
     end
 
     if obj_has_behavior_id(o, id_bhvMasterCapBox) ~= 0 and o.oInteractStatus & INT_STATUS_WAS_ATTACKED ~= 0 then
-        s.capTimer2 = 1
+        play_sound(SOUND_MENU_EXIT_PIPE, m.marioObj.header.gfx.cameraToObject)
     end
 
     if s.capTimer2 > 0 and type == INTERACT_COIN then

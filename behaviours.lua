@@ -682,7 +682,7 @@ local function bhv_powerup_item_box_loop(o)
 end
 hook_behavior(id_bhvExclamationBox, get_object_list_from_behavior(get_behavior_from_id(id_bhvExclamationBox)), false, nil, bhv_powerup_item_box_loop, "bhvExclamationBoxPowerup")
 
-if _G.bettercoins then
+if _G.betterCoins then
 local function bhv_powerup_master_cap_box(o)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
