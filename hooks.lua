@@ -13,12 +13,12 @@ local function spawn_bubble_projectile(m, angle)
     if m.playerIndex ~= 0 then return end
     spawn_sync_object(id_bhvPowerupBubble, E_MODEL_NONE, m.pos.x, m.pos.y + 50, m.pos.z, function(o)
         o.oMoveAngleYaw = angle
-        o.oVelY = m.actionArg == 1 and -3 or -1
+        o.oVelY = m.actionArg == 1 and -4 or -1
         o.oCapUnkF8 = 40 + (m.forwardVel/2)
     end)
 end
 
-ACT_POWERUP_PROJ_THROW = allocate_mario_action(ACT_FLAG_AIR | ACT_FLAG_ALLOW_VERTICAL_WIND_ACTION)
+ACT_POWERUP_PROJ_THROW = allocate_mario_action(ACT_GROUP_AIRBORNE | ACT_FLAG_AIR | ACT_FLAG_ALLOW_VERTICAL_WIND_ACTION)
 
 ---@param m MarioState
 local function act_proj_throw(m)
@@ -26,12 +26,20 @@ local function act_proj_throw(m)
     local s = gPlayerSyncTable[m.playerIndex]
 
     local anim = m.actionArg > 0 and "jers_powerups_proj_throw_air" or "jers_powerups_proj_throw_ground"
+    local handPos = gVec3fZero{}
+    local handTrail = {
+        [POWERUP_FIRE]      = E_MODEL_RED_FLAME,
+        [POWERUP_ICE]       = E_MODEL_POWERUP_SNOWFLAKE,
+        [POWERUP_BUBBLE]    = E_MODEL_BUBBLE,
+        [POWERUP_GOLD]      = E_MODEL_SPARKLES_ANIMATION,
+    }
     smlua_anim_util_set_animation(m.marioObj, anim)
     set_mario_anim_with_accel(m, MARIO_ANIM_RUNNING_UNUSED, 0x10000)
 
     if m.actionArg == 0 then
         m.vel.x = 0
         m.vel.z = 0
+        m.forwardVel = 0
         perform_ground_step(m)
         if m.actionTimer >= 20 then
             return set_mario_action(m, ACT_IDLE, 0)
@@ -40,9 +48,6 @@ local function act_proj_throw(m)
         end
     elseif m.actionArg > 0 then
         local stepResult = common_air_action_step(m, ACT_FREEFALL_LAND, MARIO_ANIM_RUNNING_UNUSED, AIR_STEP_NONE)
-        if stepResult == AIR_STEP_HIT_WALL then
-            return set_mario_action(m, ACT_SOFT_BONK, 0)
-        end
         if m.actionTimer >= 16 and m.input & INPUT_B_PRESSED ~= 0 then
             m.actionArg = 2
             m.actionState = 0
@@ -57,20 +62,26 @@ local function act_proj_throw(m)
         play_character_sound(m, CHAR_SOUND_PUNCH_HOO)
         set_anim_to_frame(m, 0)
         if m.actionArg > 0 then
-            m.vel.y = 25
+            m.vel.y = 23
         end
         if m.actionArg ~= 2 then
             m.faceAngle.y = m.intendedYaw
         else
-            m.forwardVel = m.forwardVel * 0.3
+            m.forwardVel = m.forwardVel * 0.5
         end
-    elseif m.actionTimer == 4 then
+    elseif m.actionTimer == 4 and s.powerupFlags ~= 0 then
         -- spawn projectiles
         if s.powerupFlags == POWERUP_BUBBLE then
             spawn_bubble_projectile(m, m.faceAngle.y)
         else
             spawn_fire_or_ice_ball(m, s.powerupFlags, m.faceAngle.y)
         end
+    end
+
+    if m.actionTimer < 7 and s.powerupFlags ~= 0 then
+        m.marioBodyState.punchState = 2
+        get_mario_anim_part_pos(m, MARIO_ANIM_PART_RIGHT_HAND, handPos)
+        spawn_non_sync_object(id_bhvShrinkParticle, handTrail[s.powerupFlags], handPos.x, handPos.y, handPos.z, nil)
     end
 
     m.actionTimer = m.actionTimer + 1
@@ -295,8 +306,7 @@ local function mario_before_set_action(m, act)
 
     if mario_powerup_throw_type and s.capTimer2 > 5 and (act == ACT_JUMP_KICK or act == ACT_MOVE_PUNCHING or (act == ACT_PUNCHING and m.input & INPUT_Z_DOWN == 0) or (act == ACT_DIVE and m.input & INPUT_NONZERO_ANALOG == 0)) then
         if act == ACT_JUMP_KICK or act == ACT_DIVE or m.input & INPUT_A_DOWN ~= 0 then
-            m.pos.y = m.pos.y + 10
-            m.vel.y = 25
+            m.vel.y = 10
             return set_mario_action(m, ACT_POWERUP_PROJ_THROW, 1)
         else
             return set_mario_action(m, ACT_POWERUP_PROJ_THROW, 0)
