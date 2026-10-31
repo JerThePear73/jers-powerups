@@ -293,13 +293,13 @@ local function bhv_projectile_loop(o)
     local puType = o.oBehParams
     local isIceball = puType == POWERUP_ICE
     local projData = {
-        [POWERUP_FIRE] = {model = E_MODEL_POWERUP_FIREBALL, trail = E_MODEL_RED_FLAME,          spawnSound = SOUND_OBJ_FLAME_BLOWN,         lifetime = fireballLifetime},
-        [POWERUP_ICE]  = {model = E_MODEL_POWERUP_ICEBALL,  trail = E_MODEL_POWERUP_SNOWFLAKE,  spawnSound = SOUND_OBJ_BABY_PENGUIN_WALK,   lifetime = iceballLifetime},
-        [POWERUP_GOLD] = {model = E_MODEL_POWERUP_GOLDBALL, trail = E_MODEL_SPARKLES_ANIMATION, spawnSound = SOUND_GENERAL_COIN_SPURT_2,    lifetime = goldballLifetime},
+        [POWERUP_FIRE] = {model = E_MODEL_POWERUP_FIREBALL, trail = E_MODEL_RED_FLAME,          spawnSound = SOUND_POWERUP_FIRE_SHOOT,  deathSound = SOUND_POWERUP_FIRE_DEATH,  hitSound = SOUND_POWERUP_FIRE_HIT,      lifetime = fireballLifetime},
+        [POWERUP_ICE]  = {model = E_MODEL_POWERUP_ICEBALL,  trail = E_MODEL_POWERUP_SNOWFLAKE,  spawnSound = SOUND_POWERUP_ICE_SHOOT,   deathSound = SOUND_POWERUP_ICE_DEATH,   hitSound = SOUND_POWERUP_ICE_FREEZE,    lifetime = iceballLifetime},
+        [POWERUP_GOLD] = {model = E_MODEL_POWERUP_GOLDBALL, trail = E_MODEL_SPARKLES_ANIMATION, spawnSound = SOUND_POWERUP_GOLD_SHOOT,  deathSound = SOUND_POWERUP_FIRE_DEATH,  hitSound = SOUND_POWERUP_GOLD_HIT,      lifetime = goldballLifetime},
     }
 
     if o.oTimer == 1 then
-        play_sound(projData[puType].spawnSound, o.header.gfx.cameraToObject)
+        audio_sample_play(projData[puType].spawnSound, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}, pause_check())
     end
     obj_set_model_extended(o, projData[puType].model)
 
@@ -311,7 +311,7 @@ local function bhv_projectile_loop(o)
         --         coin.oVelY = 20
         --     end)
         -- end
-        o.oCapUnkF4 = 0
+        --o.oCapUnkF4 = 0
     end
     if step & OBJ_COL_FLAG_HIT_WALL ~= 0 then
         o.oForwardVel = 30
@@ -360,26 +360,29 @@ local function bhv_projectile_loop(o)
     o.oFaceAngleYaw = o.oMoveAngleYaw
 
     if o.oTimer >= projData[puType].lifetime then
-        spawn_mist_particles_with_sound(SOUND_OBJ_DEFAULT_DEATH)
+        spawn_mist_particles()
+        audio_sample_play(projData[puType].deathSound, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}, pause_check())
         o.oAction = -1
     end
     if o.oAction == -1 then
-        spawn_mist_particles_with_sound(SOUND_OBJ_DEFAULT_DEATH)
+        spawn_mist_particles()
+        audio_sample_play(projData[puType].deathSound, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}, pause_check())
         obj_mark_for_deletion(o)
         return
     elseif o.oAction == 1 then
         if puType == POWERUP_GOLD then
-            for i=0, 1 do
+            for i=1, 3 do
                 spawn_non_sync_object(id_bhvSingleCoinGetsSpawned, E_MODEL_YELLOW_COIN, o.oPosX, o.oPosY, o.oPosZ, function(coin)
                     coin.oVelY = 20
                 end)
             end
         end
-        spawn_mist_particles_with_sound(SOUND_ACTION_HIT)
+        spawn_mist_particles()
+        audio_sample_play(projData[puType].hitSound, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}, pause_check())
         o.oAction = -1
     end
 
-    o.oCapUnkF4 = (puType == POWERUP_GOLD) and o.oCapUnkF4 + 1 or 0
+    --o.oCapUnkF4 = (puType == POWERUP_GOLD) and o.oCapUnkF4 + 1 or 0
 end
 id_bhvFireOrIceball = hook_behavior(nil, OBJ_LIST_GENACTOR, true, bhv_projectile_init, bhv_projectile_loop, "bhvFireOrIceball")
 
@@ -411,13 +414,11 @@ local function bhv_icecube_init(o)
     o.oAction               = 0
     cur_obj_become_tangible()
     obj_set_model_extended(o, E_MODEL_POWERUP_ICECUBE)
-    spawn_mist_particles_with_sound(SOUND_OBJ_BIG_PENGUIN_WALK)
-    spawn_mist_particles_with_sound(SOUND_OBJ_BIG_PENGUIN_WALK)
 
     spawn_visual_coins(o, 3)
 end
 local function bhv_icecube_loop(o)
-    local icecubeDurr = iceballLifetime * 4 -- 3
+    local icecubeDurr = iceballLifetime * 4
     load_object_collision_model()
 
     if cur_obj_was_attacked_or_ground_pounded() ~= 0 then
@@ -430,8 +431,9 @@ local function bhv_icecube_loop(o)
     end
 
     if o.oAction == -1 then
-        play_sound_with_freq_scale(SOUND_GENERAL2_BOBOMB_EXPLOSION, o.header.gfx.cameraToObject, 10)
-        spawn_triangle_break_particles(10, 139, 0.3, 2)
+        spawn_mist_particles()
+        audio_sample_play(SOUND_POWERUP_ICE_SHATTER, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}, pause_check())
+        --spawn_triangle_break_particles(10, 139, 0.3, 2)
         if o.oTimer < icecubeDurr and o.oNumLootCoins == 3 then
             obj_spawn_loot_yellow_coins(o, 3, 0)
         end
@@ -478,7 +480,8 @@ local function bhv_powerup_bubble_init(o)
     o.oCapUnkF4             = 0
     obj_scale(o, 0)
     obj_set_model_extended(o, E_MODEL_POWERUP_BUBBLE)
-    play_sound_with_freq_scale(SOUND_OBJ_DEFAULT_DEATH, o.header.gfx.cameraToObject, 1.5)
+    --play_sound_with_freq_scale(SOUND_OBJ_DEFAULT_DEATH, o.header.gfx.cameraToObject, 1.5)
+    audio_sample_play(SOUND_POWERUP_BUBBLE_SHOOT, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}, pause_check())
     cur_obj_become_tangible()
 end
 local function bhv_powerup_bubble_loop(o)
@@ -516,7 +519,8 @@ local function bhv_powerup_bubble_loop(o)
     end
 
     if o.oAction == -1 then
-        play_sound_with_freq_scale(SOUND_OBJ_DEFAULT_DEATH, o.header.gfx.cameraToObject, -1.5)
+        --play_sound_with_freq_scale(SOUND_OBJ_DEFAULT_DEATH, o.header.gfx.cameraToObject, -1.5)
+        audio_sample_play(SOUND_POWERUP_BUBBLE_DEATH, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}, pause_check())
         spawn_mist_particles_variable(10, 50, 10)
         if o.oNumLootCoins > 0 and o.oNumLootCoins < 5 then
             obj_spawn_loot_yellow_coins(o, o.oNumLootCoins, 0)
@@ -525,8 +529,8 @@ local function bhv_powerup_bubble_loop(o)
         end
         o.oNumLootCoins = 0
         o.activeFlags = ACTIVE_FLAG_DEACTIVATED
-    elseif o.oTimer > 15 and m.vel.y < 10 then
-        if obj_check_hitbox_overlap(m.marioObj, o) and m.action & ACT_FLAG_AIR ~= 0 then
+    elseif o.oTimer > 15 and obj_check_hitbox_overlap(m.marioObj, o) then
+        if m.vel.y < 10 and m.action & ACT_FLAG_AIR ~= 0 and m.input & INPUT_A_DOWN ~= 0 then
             if m.action == ACT_DOUBLE_JUMP then
                 set_mario_action(m, ACT_TRIPLE_JUMP, 0)
             elseif m.action == ACT_JUMP or m.action == ACT_SIDE_FLIP or m.action == ACT_FREEFALL or m.action == ACT_WALL_KICK_AIR then
@@ -534,8 +538,8 @@ local function bhv_powerup_bubble_loop(o)
             else
                 set_mario_action(m, ACT_JUMP, 0)
             end
-            o.oAction = -1
         end
+        o.oAction = -1
     end
 
     if o.oTimer > bubbleLifetime then
@@ -623,7 +627,7 @@ local function bhv_powerup_snowman_loop(o)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     if o.oAction == MR_BLIZZARD_ACT_DEATH and o.oTimer == 63 and math.abs(o.oFaceAngleRoll) == 0x4000 then
-        spawn_powerup_from_bhv(m, o, 0, 15, o.oFaceAngleYaw, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
+        spawn_powerup_from_bhv(m, o, 0, 15, o.oFaceAngleYaw, nil)
     end
 end
 hook_behavior(id_bhvMrBlizzard, get_object_list_from_behavior(get_behavior_from_id(id_bhvMrBlizzard)), false, nil, bhv_powerup_snowman_loop, "bhvMrBlizzardPowerup")
@@ -659,7 +663,7 @@ local function bhv_powerup_item_box_loop(o)
             if o.oTimer == 5 then
                 o.oBehParams = powerupToSpawn
             elseif o.oTimer == 6 then
-                spawn_powerup_manual(o.oPosX, o.oPosY, o.oPosZ, 5, 15, math.random(0, 0x10000), o.oBehParams, SOUND_GENERAL_GRAND_STAR_JUMP)
+                spawn_powerup_manual(o.oPosX, o.oPosY, o.oPosZ, 5, 15, math.random(0, 0x10000), o.oBehParams, nil)
             end
         end
     end

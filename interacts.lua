@@ -7,7 +7,7 @@ local function fire_hit_generic(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED | INT_STATUS_TOUCHED_BOB_OMB-- | ATTACK_FROM_ABOVE
-    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw - 0x8000, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
+    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw - 0x8000, nil)
     proj.oAction = 1
     if obj_has_behavior_id(target, id_bhvMoneybag) ~= 0 then
         target.parentObj.activeFlags = ACTIVE_FLAG_DEACTIVATED
@@ -21,7 +21,7 @@ local function fire_hit_snowman(proj, target)
     for i=0, 2 do
         spawn_non_sync_object(id_bhvSingleCoinGetsSpawned, E_MODEL_YELLOW_COIN, target.oPosX, target.oPosY, target.oPosZ, nil)
     end
-    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
+    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, nil)
     target.oFaceAngleRoll = 0x3000
     target.oMrBlizzardHeldObj = nil
     target.prevObj = target.oMrBlizzardHeldObj
@@ -83,9 +83,9 @@ local function fire_hit_bowser(proj, target)
         oBowser.oAction = 1
         oBowser.oForwardVel = proj.oBehParams == POWERUP_GOLD and -40 or -20
         oBowser.oVelY = proj.oBehParams == POWERUP_GOLD and 60 or 40
-        spawn_mist_particles_with_sound(SOUND_ACTION_HIT)
+        proj.oAction = 1
     else
-        spawn_mist_particles_with_sound(SOUND_OBJ_DEFAULT_DEATH)
+        general_hit_disallow(proj, target)
     end
     obj_mark_for_deletion(proj)
 end
@@ -97,11 +97,11 @@ local function ice_hit_genertic_freeze(proj, target)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
     target.activeFlags = target.activeFlags | ACTIVE_FLAG_DEACTIVATED
     target.header.gfx.shadowInvisible = true
-    obj_mark_for_deletion(proj)
+    proj.oAction = 1
     if m.playerIndex == 0 then
         spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
             cube.oNumLootCoins = 3
-            spawn_powerup_from_bhv(m, target, 0, 0, target.oFaceAngleYaw, cube, SOUND_GENERAL_GRAND_STAR_JUMP)
+            spawn_powerup_from_bhv(m, target, 0, 0, target.oFaceAngleYaw, cube)
             cube.oFaceAngleYaw = target.oFaceAngleYaw
             if obj_has_behavior_id(target, id_bhvGoomba) ~= 0 then
                 obj_scale(cube, target.header.gfx.scale.y*0.75)
@@ -112,7 +112,7 @@ end
 local function ice_hit_bobomb_freeze(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
-    obj_mark_for_deletion(proj)
+    proj.oAction = 1
     if target.oBehParams ~= 0x100 then -- bobomb has coin
         obj_spawn_yellow_coins(target, 1)
     end
@@ -128,7 +128,7 @@ local function ice_hit_bluecoin_freeze(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     target.oInteractStatus = target.oInteractStatus | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
-    obj_mark_for_deletion(proj)
+    proj.oAction = 1
     if m.playerIndex == 0 then
         spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
             cube.oNumLootCoins = 3
@@ -144,7 +144,7 @@ local function ice_hit_goomba_or_koopa_freeze(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
-    obj_mark_for_deletion(proj)
+    proj.oAction = 1
     if m.playerIndex == 0 then
         spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
             cube.oNumLootCoins = 3
@@ -186,7 +186,7 @@ local function bubble_hit_generic_loot_coins(proj, target)
     target.header.gfx.shadowInvisible = true
     spawn_mist_particles_with_sound(SOUND_ACTION_SWIM_FAST)
     spawn_visual_coins(proj, proj.oNumLootCoins)
-    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, proj, SOUND_GENERAL_GRAND_STAR_JUMP)
+    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, proj)
 end
 local function bubble_hit_generic_bluecoin(proj, target)
     --local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
@@ -197,7 +197,7 @@ local function bubble_hit_generic_bluecoin(proj, target)
     target.header.gfx.shadowInvisible = true
     spawn_mist_particles_with_sound(SOUND_ACTION_SWIM_FAST)
     spawn_visual_coins(proj, proj.oNumLootCoins)
-    --spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, bubble, SOUND_GENERAL_GRAND_STAR_JUMP)
+    --spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, bubble)
     obj_mark_for_deletion(target)
 end
 local function bubble_hit_bobomb(proj, target)

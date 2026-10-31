@@ -13,10 +13,70 @@ local function spawn_bubble_projectile(m, angle)
     if m.playerIndex ~= 0 then return end
     spawn_sync_object(id_bhvPowerupBubble, E_MODEL_NONE, m.pos.x, m.pos.y + 50, m.pos.z, function(o)
         o.oMoveAngleYaw = angle
-        o.oVelY = m.action == ACT_AIR_THROW and -3 or -1
+        o.oVelY = m.actionArg == 1 and -3 or -1
         o.oCapUnkF8 = 40 + (m.forwardVel/2)
     end)
 end
+
+ACT_POWERUP_PROJ_THROW = allocate_mario_action(ACT_FLAG_AIR | ACT_FLAG_ALLOW_VERTICAL_WIND_ACTION)
+
+---@param m MarioState
+local function act_proj_throw(m)
+    local e = gPowerupStates[m.playerIndex]
+    local s = gPlayerSyncTable[m.playerIndex]
+
+    local anim = m.actionArg > 0 and "jers_powerups_proj_throw_air" or "jers_powerups_proj_throw_ground"
+    smlua_anim_util_set_animation(m.marioObj, anim)
+    set_mario_anim_with_accel(m, MARIO_ANIM_RUNNING_UNUSED, 0x10000)
+
+    if m.actionArg == 0 then
+        m.vel.x = 0
+        m.vel.z = 0
+        perform_ground_step(m)
+        if m.actionTimer >= 20 then
+            return set_mario_action(m, ACT_IDLE, 0)
+        elseif m.actionTimer >= 14 and m.input & INPUT_B_PRESSED ~= 0 then
+            m.actionState = 0
+        end
+    elseif m.actionArg > 0 then
+        local stepResult = common_air_action_step(m, ACT_FREEFALL_LAND, MARIO_ANIM_RUNNING_UNUSED, AIR_STEP_NONE)
+        if stepResult == AIR_STEP_HIT_WALL then
+            return set_mario_action(m, ACT_SOFT_BONK, 0)
+        end
+        if m.actionTimer >= 16 and m.input & INPUT_B_PRESSED ~= 0 then
+            m.actionArg = 2
+            m.actionState = 0
+        end
+    end
+
+    if m.actionState == 0 then
+        m.actionTimer = -1
+        m.actionState = 1
+    end
+    if m.actionTimer == 0 then
+        play_character_sound(m, CHAR_SOUND_PUNCH_HOO)
+        set_anim_to_frame(m, 0)
+        if m.actionArg > 0 then
+            m.vel.y = 25
+        end
+        if m.actionArg ~= 2 then
+            m.faceAngle.y = m.intendedYaw
+        else
+            m.forwardVel = m.forwardVel * 0.3
+        end
+    elseif m.actionTimer == 4 then
+        -- spawn projectiles
+        if s.powerupFlags == POWERUP_BUBBLE then
+            spawn_bubble_projectile(m, m.faceAngle.y)
+        else
+            spawn_fire_or_ice_ball(m, s.powerupFlags, m.faceAngle.y)
+        end
+    end
+
+    m.actionTimer = m.actionTimer + 1
+    return 0
+end
+hook_mario_action(ACT_POWERUP_PROJ_THROW, act_proj_throw)
 
 local function mario_update(m)
     local e = gPowerupStates[m.playerIndex]
@@ -122,45 +182,48 @@ local function mario_update(m)
         end
     end
 
-    if (m.action == ACT_THROWING or m.action == ACT_AIR_THROW) and m.actionArg == ARG_THROW then
-        local soundFrame = m.action == ACT_THROWING and 5 or -1
+    -- if (m.action == ACT_THROWING or m.action == ACT_AIR_THROW) and m.actionArg == ARG_THROW then
+    --     local soundFrame = m.action == ACT_THROWING and 5 or -1
 
-        if m.action == ACT_AIR_THROW then
-            if (m.pos.y - m.floorHeight) < (m.vel.y * -1) + 1 and m.vel.y < 0 then
-                set_mario_action(m, ACT_FREEFALL_LAND, 0)
-            end
-            if m.input & INPUT_Z_PRESSED ~= 0 then
-                set_mario_action(m, ACT_GROUND_POUND, 0)
-            end
-        end
+    --     if m.action == ACT_AIR_THROW then
+    --         if (m.pos.y - m.floorHeight) < (m.vel.y * -1) + 1 and m.vel.y < 0 then
+    --             set_mario_action(m, ACT_FREEFALL_LAND, 0)
+    --         end
+    --         if m.input & INPUT_Z_PRESSED ~= 0 then
+    --             set_mario_action(m, ACT_GROUND_POUND, 0)
+    --         end
+    --     end
 
-        if mario_powerup_throw_type and s.capTimer2 > 5 then
-            if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
-                play_character_sound(m, s.powerupFlags ~= 0 and CHAR_SOUND_PUNCH_HOO)
-                if s.powerupFlags == POWERUP_BUBBLE then
-                    spawn_bubble_projectile(m, m.faceAngle.y)
-                else
-                    spawn_fire_or_ice_ball(m, s.powerupFlags, m.faceAngle.y)
-                end
-            end
-            if m.action ~= ACT_THROWING or m.actionTimer < 15 then
-                m.marioBodyState.handState = MARIO_HAND_RIGHT_OPEN
-            end
-        else
-            if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
-                play_character_sound(m, s.powerupFlags ~= 0 and CHAR_SOUND_DOH)
-            end
-        end
-    end
+    --     if mario_powerup_throw_type and s.capTimer2 > 7 then
+    --         if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
+    --             play_character_sound(m, s.powerupFlags ~= 0 and CHAR_SOUND_PUNCH_HOO)
+    --             if s.powerupFlags == POWERUP_BUBBLE then
+    --                 spawn_bubble_projectile(m, m.faceAngle.y)
+    --             else
+    --                 spawn_fire_or_ice_ball(m, s.powerupFlags, m.faceAngle.y)
+    --             end
+    --         end
+    --         if m.action ~= ACT_THROWING or m.actionTimer < 15 then
+    --             m.marioBodyState.handState = MARIO_HAND_RIGHT_OPEN
+    --         end
+    --     else
+    --         if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
+    --             play_character_sound(m, s.powerupFlags ~= 0 and CHAR_SOUND_DOH)
+    --         end
+    --     end
+    -- end
 
     -- evilswag moveset compat
-    if mario_powerup_throw_type and s.capTimer2 > 5 and m.action == ACT_SIDE_FLIP and m.actionArg == 73 and m.actionTimer == 5 then
-        if s.powerupFlags == POWERUP_BUBBLE then
-            spawn_bubble_projectile(m, m.faceAngle.y)
-            spawn_bubble_projectile(m, m.faceAngle.y - 0x8000)
-        else
-            spawn_fire_or_ice_ball(m, s.powerupFlags, m.faceAngle.y)
-            spawn_fire_or_ice_ball(m, s.powerupFlags, m.faceAngle.y - 0x8000)
+    if mario_powerup_throw_type and s.capTimer2 > 5 then
+        if m.action == ACT_SIDE_FLIP and m.actionArg == 73 and (m.actionTimer == 5 or m.actionTimer == 7) then
+            if s.powerupFlags == POWERUP_BUBBLE then
+                spawn_bubble_projectile(m, m.faceAngle.y + (m.actionTimer - 6)*0x500)
+            else
+                spawn_fire_or_ice_ball(m, s.powerupFlags, m.faceAngle.y + (m.actionTimer - 6)*0x500)
+            end
+        end
+        if m.action == ACT_LONG_JUMP and m.input & INPUT_B_PRESSED ~= 0 then
+            set_mario_action(m, ACT_POWERUP_PROJ_THROW, 2)
         end
     end
 
@@ -177,7 +240,7 @@ local function mario_update(m)
                 spawn_mist_particles_with_sound(SOUND_GENERAL_COIN_SPURT_2)
             end)
         else
-            spawn_powerup_manual(m.pos.x, m.pos.y + 200, m.pos.z, 10, 10, m.faceAngle.y, e.powerupStored, NO_SOUND)
+            spawn_powerup_manual(m.pos.x, m.pos.y + 200, m.pos.z, 10, 10, m.faceAngle.y, e.powerupStored, SOUND_POWERUP_USE)
         end
         audio_sample_play(SOUND_POWERUP_USE, m.pos, 1)
         mod_storage_save_integer("pocket_item", 0)
@@ -230,13 +293,13 @@ local function mario_before_set_action(m, act)
     local s = gPlayerSyncTable[m.playerIndex]
     local mario_powerup_throw_type = (s.powerupFlags >= 1 and s.powerupFlags <= 4)
 
-    if mario_powerup_throw_type and (act == ACT_JUMP_KICK or (act == ACT_MOVE_PUNCHING and m.input & INPUT_NONZERO_ANALOG ~= 0)) and m.input & INPUT_B_PRESSED ~= 0 then
-        m.faceAngle.y = m.intendedYaw
-        m.forwardVel = m.forwardVel * 0.8
-        if act == ACT_JUMP_KICK then
-            return set_mario_action(m, ACT_AIR_THROW, ARG_THROW)
+    if mario_powerup_throw_type and s.capTimer2 > 5 and (act == ACT_JUMP_KICK or act == ACT_MOVE_PUNCHING or (act == ACT_PUNCHING and m.input & INPUT_Z_DOWN == 0) or (act == ACT_DIVE and m.input & INPUT_NONZERO_ANALOG == 0)) then
+        if act == ACT_JUMP_KICK or act == ACT_DIVE or m.input & INPUT_A_DOWN ~= 0 then
+            m.pos.y = m.pos.y + 10
+            m.vel.y = 25
+            return set_mario_action(m, ACT_POWERUP_PROJ_THROW, 1)
         else
-            return set_mario_action(m, ACT_THROWING, ARG_THROW)
+            return set_mario_action(m, ACT_POWERUP_PROJ_THROW, 0)
         end
     end
 end

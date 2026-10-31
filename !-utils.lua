@@ -12,8 +12,21 @@ E_MODEL_POWERUP_SHROOM          = smlua_model_util_get_id('jers_powerups_redshro
 --E_MODEL_POWERUP_CLOUDFLOWER  = smlua_model_util_get_id('jers_powerups_cloudflower_geo')
 --local E_MODEL_POWERUP_STARMAN = smlua_model_util_get_id("jers_powerups_starman_geo")
 
-SOUND_POWERUP_SAVE  = audio_sample_load("jers_powerups_save.ogg")
-SOUND_POWERUP_USE   = audio_sample_load("jers_powerups_use.ogg")
+SOUND_POWERUP_SAVE          = audio_sample_load("jers_powerups_item_save.ogg")
+SOUND_POWERUP_USE           = audio_sample_load("jers_powerups_item_use.ogg")
+SOUND_POWERUP_APPEAR        = audio_sample_load("jers_powerups_item_appear.ogg")
+SOUND_POWERUP_FIRE_SHOOT    = audio_sample_load("jers_powerups_fire_shoot.ogg")
+SOUND_POWERUP_FIRE_DEATH    = audio_sample_load("jers_powerups_fire_death.ogg")
+SOUND_POWERUP_FIRE_HIT      = audio_sample_load("jers_powerups_fire_hit.ogg")
+SOUND_POWERUP_ICE_SHOOT     = audio_sample_load("jers_powerups_ice_shoot.ogg")
+SOUND_POWERUP_ICE_DEATH     = audio_sample_load("jers_powerups_ice_death.ogg")
+SOUND_POWERUP_ICE_FREEZE    = audio_sample_load("jers_powerups_ice_freeze.ogg")
+SOUND_POWERUP_ICE_SHATTER   = audio_sample_load("jers_powerups_ice_shatter.ogg")
+SOUND_POWERUP_BUBBLE_SHOOT  = audio_sample_load("jers_powerups_bubble_shoot.ogg")
+SOUND_POWERUP_BUBBLE_DEATH  = audio_sample_load("jers_powerups_bubble_death.ogg")
+SOUND_POWERUP_GOLD_SHOOT    = audio_sample_load("jers_powerups_gold_shoot.ogg")
+SOUND_POWERUP_GOLD_HIT      = audio_sample_load("jers_powerups_gold_hit.ogg")
+SOUND_POWERUP_GOLD_APPEAR   = audio_sample_load("jers_powerups_gold_appear.ogg")
 
 
 TEX_POWERUP_POCKET  = get_texture_info("jers_powerups_pocket")
@@ -201,13 +214,25 @@ function set_cap_vol()
         return 0
     end
 
-    tempVol = (is_game_paused() or m.action == ACT_START_SLEEPING or m.action == ACT_SLEEPING or m.actionTimer < 80 and (m.action == ACT_STAR_DANCE_EXIT or m.action == ACT_STAR_DANCE_NO_EXIT or m.action == ACT_STAR_DANCE_WATER)) and 0.2 or 1
+    tempVol = (is_game_paused() or m.action == ACT_START_SLEEPING or m.action == ACT_SLEEPING or (m.actionTimer < 80 and (m.action == ACT_STAR_DANCE_EXIT or m.action == ACT_STAR_DANCE_NO_EXIT or m.action == ACT_STAR_DANCE_WATER))) and 0.2 or 1
 
     if m.capTimer < (3 * 30) then
         return (m.capTimer / 90) * tempVol
     end
 
     return tempVol
+end
+
+function pause_check()
+    local m = gMarioStates[0]
+
+    if (_G.charSelectExists and _G.charSelect.is_menu_open()) or is_game_paused() then
+        return 0
+    elseif m.action == ACT_START_SLEEPING or m.action == ACT_SLEEPING or (m.actionTimer < 80 and (m.action == ACT_STAR_DANCE_EXIT or m.action == ACT_STAR_DANCE_NO_EXIT or m.action == ACT_STAR_DANCE_WATER)) then
+        return 0.2
+    else
+        return 1
+    end
 end
 
 function store_powerup(m, pu)
@@ -230,8 +255,7 @@ end
 ---@param velY number Powerup oVelY
 ---@param angle number Powerup oMoveAngleYaw
 ---@param parent Object Object that the Powerup will be inside of
----@param sound integer Powerup spawn sound
-function spawn_powerup_from_bhv(m, o, velX, velY, angle, parent, sound)
+function spawn_powerup_from_bhv(m, o, velX, velY, angle, parent)
     if o == nil then return end
     for bhv, powerType in pairs(enemyDrops) do
         if obj_has_behavior_id(o, bhv) ~= 0 then
@@ -241,9 +265,9 @@ function spawn_powerup_from_bhv(m, o, velX, velY, angle, parent, sound)
                     pu.oVelY            = velY
                     pu.oMoveAngleYaw    = angle
                     pu.oBehParams       = powerType
-                    if sound ~= nil then
-                        spawn_mist_particles_with_sound(sound)
-                    end
+                    local spawnSound = pu.oBehParams == POWERUP_GOLD and SOUND_POWERUP_GOLD_APPEAR or SOUND_POWERUP_APPEAR
+                    spawn_mist_particles()
+                    audio_sample_play(spawnSound, {x = pu.oPosX, y = pu.oPosY, z = pu.oPosZ}, pause_check())
                     if parent ~= nil then
                         pu.parentObj = parent
                         pu.oPosY = parent.oPosY + 40
@@ -263,7 +287,7 @@ end
 ---@param velY number Powerup oVelY
 ---@param angle number Powerup oMoveAngleYaw
 ---@param type integer Powerup oBehParams
----@param sound integer Powerup spawn sound
+---@param sound ModAudio Powerup spawn audio sample
 function spawn_powerup_manual(x, y, z, velX, velY, angle, type, sound)
     local bhv = type == POWERUP_SHROOM and id_bhvShroom or id_bhvGeneralPowerup
     spawn_sync_object(bhv, E_MODEL_NONE, x, y, z, function(pu)
@@ -271,9 +295,12 @@ function spawn_powerup_manual(x, y, z, velX, velY, angle, type, sound)
         pu.oVelY            = velY
         pu.oMoveAngleYaw    = angle
         pu.oBehParams       = type
+        local spawnSound = pu.oBehParams == POWERUP_GOLD and SOUND_POWERUP_GOLD_APPEAR or SOUND_POWERUP_APPEAR
         if sound ~= nil then
-            spawn_mist_particles_with_sound(sound)
+            spawnSound = sound
         end
+        spawn_mist_particles()
+        audio_sample_play(spawnSound, {x = pu.oPosX, y = pu.oPosY, z = pu.oPosZ}, pause_check())
     end)
 end
 
@@ -390,7 +417,7 @@ if _G.betterCoins then
             interact = function(item)
                 local m = gMarioStates[0]
                 local o = obj_get_nearest_object_with_behavior_id(m.marioObj, id_bhvShopkeeper)
-                spawn_powerup_manual(o.oPosX, o.oPosY + 100, o.oPosZ, 3, 25, o.oFaceAngleYaw, i, SOUND_GENERAL_COIN_SPURT)
+                spawn_powerup_manual(o.oPosX, o.oPosY + 100, o.oPosZ, 3, 25, o.oFaceAngleYaw, i, nil)
                 return true
             end,
         })
