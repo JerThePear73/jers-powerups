@@ -93,6 +93,10 @@ local function bhv_general_powerup_loop(o)
     local e = gPowerupStates[m.playerIndex]
     local s = gPlayerSyncTable[m.playerIndex]
 
+    if o.oBehParams >= 1 and o.oBehParams <= 4 then
+        smlua_anim_util_set_animation(o, "jers_powerups_anim_flower_dance")
+    end
+
     local step = object_step_without_floor_orient()
     if step & OBJ_COL_FLAG_GROUNDED ~= 0 then
         if o.oVelY ~= 0.0 then
@@ -106,9 +110,7 @@ local function bhv_general_powerup_loop(o)
         local sparkleY = o.oPosY + math.random(-range, range)
         local sparkleZ = o.oPosZ + math.random(-range, range)
         local sparkleScale = math.random(1, 8)/10
-        spawn_non_sync_object(id_bhvCoinSparkles, E_MODEL_SPARKLES_ANIMATION, sparkleX, sparkleY, sparkleZ, function(sparkle)
-            obj_scale(sparkle, sparkleScale)
-        end)
+        spawn_non_sync_object(id_bhvShrinkParticle, E_MODEL_SPARKLES_ANIMATION, sparkleX, sparkleY, sparkleZ, nil)
     end
     if o.oVelY ~= 0 then
         o.oTimer = 0
@@ -330,7 +332,7 @@ local function bhv_projectile_loop(o)
 
     if o.oAction == 0 then
         local targetDist = 0x20000
-        local hitType = puType == POWERUP_GOLD and POWERUP_FIRE or puType -- change this when gold interacts are done
+        local hitType = puType -- change this when gold interacts are done
         for key, hit_effect in pairs(projectileHitInteracts) do
             local hitObj = cur_obj_nearest_object_with_behavior(get_behavior_from_id(key))
             if hitObj ~= nil then

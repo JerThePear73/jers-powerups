@@ -13,6 +13,15 @@ local function fire_hit_generic(proj, target)
         target.parentObj.activeFlags = ACTIVE_FLAG_DEACTIVATED
         target.oAction = MONEYBAG_ACT_DEATH
         target.oTimer = 1
+    elseif obj_has_behavior_id(target, id_bhvPiranhaPlant) ~= 0 then
+        play_sound(SOUND_OBJ2_PIRANHA_PLANT_DYING, target.header.gfx.cameraToObject);
+
+        -- Spawn 20 intangible purple particles that quickly dissipate.
+        for i = 1, 20 do
+            spawn_non_sync_object(id_bhvPurpleParticle, E_MODEL_PURPLE_MARBLE, target.oPosX, target.oPosY, target.oPosZ, nil);
+        end
+        stop_secondary_music(1000)
+        target.oAction = PIRANHA_PLANT_ACT_ATTACKED
     end
 end
 local function fire_hit_snowman(proj, target)
@@ -216,40 +225,247 @@ local function bubble_hit_box(proj, target)
 end
 
 projectileHitInteracts = {
-    [id_bhvGoomba]              = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_goomba_or_koopa_freeze,   [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvBobomb]              = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_bobomb_freeze,            [POWERUP_BUBBLE] = bubble_hit_bobomb},
-    [id_bhvKoopa]               = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_goomba_or_koopa_freeze,   [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
-    [id_bhvMontyMole]           = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = nil},
-    [id_bhvBoo]                 = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = nil},
-    [id_bhvGhostHuntBoo]        = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = nil},
-    [id_bhvMerryGoRoundBoo]     = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = nil},
-    [id_bhvGhostHuntBigBoo]     = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = nil},
-    [id_bhvBalconyBigBoo]       = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = nil},
-    [id_bhvMerryGoRoundBigBoo]  = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = nil},
-    [id_bhvFlyingBookend]       = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
-    [id_bhvSkeeter]             = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvMoneybag]            = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvSnufit]              = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvSwoop]               = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvFirePiranhaPlant]    = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = nil},
-    [id_bhvEnemyLakitu]         = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvPokeyBodyPart]       = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvEyerokHand]          = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvScuttlebug]          = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvSmallBully]          = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvBigBully]            = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvBigBullyWithMinions] = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvSmallChillBully]     = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvBigChillBully]       = {[POWERUP_FIRE] = fire_hit_bully,       [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvSpindrift]           = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvFlyGuy]              = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_genertic_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins},
-    [id_bhvMrBlizzard]          = {[POWERUP_FIRE] = fire_hit_snowman,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvHeaveHo]             = {[POWERUP_FIRE] = fire_hit_heaveho,     [POWERUP_ICE] = ice_hit_bluecoin_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
-    [id_bhvMrI]                 = {[POWERUP_FIRE] = fire_hit_eyeball,     [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
-    [id_bhvBreakableBox]        = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvBreakableBoxSmall]   = {[POWERUP_FIRE] = fire_hit_small_box,   [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = bubble_hit_box},
-    [id_bhvHauntedChair]        = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = ice_hit_bluecoin_freeze,          [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin},
-    [id_bhvBowserBodyAnchor]    = {[POWERUP_FIRE] = fire_hit_bowser,      [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvChuckya]             = {[POWERUP_FIRE] = general_hit_disallow, [POWERUP_ICE] = general_hit_disallow,             [POWERUP_BUBBLE] = general_hit_disallow},
-    [id_bhvIceCube]             = {[POWERUP_FIRE] = fire_hit_generic,     [POWERUP_ICE] = nil,                              [POWERUP_BUBBLE] = general_hit_disallow},
+    [id_bhvGoomba] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_goomba_or_koopa_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvBobomb] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_bobomb_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_bobomb,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvKoopa] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_goomba_or_koopa_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvMontyMole] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = nil,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvBoo] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvGhostHuntBoo] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = nil,
+    },
+    [id_bhvMerryGoRoundBoo] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvGhostHuntBigBoo] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvBalconyBigBoo] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvMerryGoRoundBigBoo] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvFlyingBookend] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvSkeeter] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvMoneybag] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvSnufit] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvSwoop] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvFirePiranhaPlant] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvEnemyLakitu] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvPokeyBodyPart] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvEyerokHand] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvScuttlebug] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvSmallBully] = {
+        [POWERUP_FIRE] = fire_hit_bully,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_bully,
+    },
+    [id_bhvBigBully] = {
+        [POWERUP_FIRE] = fire_hit_bully,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_bully,
+    },
+    [id_bhvBigBullyWithMinions] = {
+        [POWERUP_FIRE] = fire_hit_bully,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_bully,
+    },
+    [id_bhvSmallChillBully] = {
+        [POWERUP_FIRE] = fire_hit_bully,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_bully,
+    },
+    [id_bhvBigChillBully] = {
+        [POWERUP_FIRE] = fire_hit_bully,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_bully,
+    },
+    [id_bhvSpindrift] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvFlyGuy] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_genertic_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_loot_coins,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvMrBlizzard] = {
+        [POWERUP_FIRE] = fire_hit_snowman,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_snowman,
+    },
+    [id_bhvHeaveHo] = {
+        [POWERUP_FIRE] = fire_hit_heaveho,
+        [POWERUP_ICE] = ice_hit_bluecoin_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin,
+        [POWERUP_GOLD] = fire_hit_heaveho,
+    },
+    [id_bhvMrI] = {
+        [POWERUP_FIRE] = fire_hit_eyeball,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin,
+        [POWERUP_GOLD] = fire_hit_eyeball,
+    },
+    [id_bhvBreakableBox] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = nil,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvBreakableBoxSmall] = {
+        [POWERUP_FIRE] = fire_hit_small_box,
+        [POWERUP_ICE] = nil,
+        [POWERUP_BUBBLE] = bubble_hit_box,
+        [POWERUP_GOLD] = fire_hit_small_box,
+    },
+    [id_bhvHauntedChair] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = ice_hit_bluecoin_freeze,
+        [POWERUP_BUBBLE] = bubble_hit_generic_bluecoin,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvBowserBodyAnchor] = {
+        [POWERUP_FIRE] = fire_hit_bowser,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_bowser,
+    },
+    [id_bhvChuckya] = {
+        [POWERUP_FIRE] = general_hit_disallow,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = function(proj, target)
+            obj_mark_for_deletion(target);
+            obj_spawn_loot_yellow_coins(target, 5, 20);
+            spawn_mist_particles_with_sound(SOUND_OBJ_CHUCKYA_DEATH);
+            proj.oAction = 1
+        end,
+    },
+    [id_bhvIceCube] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = nil,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvFirePiranhaPlant] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvPiranhaPlant] = {
+        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
+    },
+    [id_bhvSmallWhomp] = {
+        [POWERUP_FIRE] = general_hit_disallow,
+        [POWERUP_ICE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_GOLD] = function(proj, target)
+            target.oNumLootCoins = 5;
+            obj_spawn_loot_yellow_coins(target, 5, 20);
+            target.oAction = 8;
+            proj.oAction = 1
+        end,
+    },
 }
