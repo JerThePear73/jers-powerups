@@ -67,6 +67,16 @@ local function hud_render()
         djui_hud_print_text("@", 38, 35, 1, 1)
         djui_hud_print_text(tostring(math.floor(capTimerToCheck/30)+1), 52, 35, 1, 1)
     end
+
+    -- debug
+    if debugToggled then
+        djui_hud_set_font(FONT_NORMAL)
+        djui_hud_set_color(255, 0, 0, 255)
+        djui_hud_print_text("s.powerupFlags: "..tostring(s.powerupFlags), 10, 70, 0.25)
+        djui_hud_print_text("e.displayPowerup: "..tostring(e.displayPowerup), 10, 80, 0.25)
+        djui_hud_print_text("s.capTimer2: "..tostring(s.capTimer2), 10, 90, 0.25)
+        djui_hud_print_text("m.capTimer: "..tostring(m.capTimer), 10, 100, 0.25)
+    end
 end
 hook_event(HOOK_ON_HUD_RENDER_BEHIND, hud_render)
 
@@ -93,3 +103,9 @@ for i=0, #pocketItemLayouts do
         mod_storage_save_integer("item_pos", e.hudPocketPos)
     end)
 end
+
+
+hook_chat_command("ep-debug", "- enable debug hud", function(msg)
+	debugToggled = not debugToggled
+	return true
+end)

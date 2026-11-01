@@ -14,14 +14,17 @@ local function fire_hit_generic(proj, target)
         target.oAction = MONEYBAG_ACT_DEATH
         target.oTimer = 1
     elseif obj_has_behavior_id(target, id_bhvPiranhaPlant) ~= 0 then
-        play_sound(SOUND_OBJ2_PIRANHA_PLANT_DYING, target.header.gfx.cameraToObject);
-
-        -- Spawn 20 intangible purple particles that quickly dissipate.
-        for i = 1, 20 do
-            spawn_non_sync_object(id_bhvPurpleParticle, E_MODEL_PURPLE_MARBLE, target.oPosX, target.oPosY, target.oPosZ, nil);
+        if target.oAction ~= PIRANHA_PLANT_ACT_ATTACKED then
+            play_sound(SOUND_OBJ2_PIRANHA_PLANT_DYING, target.header.gfx.cameraToObject);
+            -- Spawn 20 intangible purple particles that quickly dissipate.
+            for i = 1, 20 do
+                spawn_non_sync_object(id_bhvPurpleParticle, E_MODEL_PURPLE_MARBLE, target.oPosX, target.oPosY, target.oPosZ, nil);
+            end
+            stop_secondary_music(1000)
+            target.oAction = PIRANHA_PLANT_ACT_ATTACKED
+        else
+            general_hit_disallow(proj, target)
         end
-        stop_secondary_music(1000)
-        target.oAction = PIRANHA_PLANT_ACT_ATTACKED
     end
 end
 local function fire_hit_snowman(proj, target)
@@ -81,6 +84,14 @@ local function fire_hit_small_box(proj, target)
     create_sound_spawner(SOUND_GENERAL_BREAK_BOX)
     obj_mark_for_deletion(target)
     proj.oAction = 1
+end
+local function fire_hit_boo_boss(proj, target)
+    if target.oAction ~= 3 then
+        target.oInteractStatus = target.oInteractStatus | ATTACK_FAST_ATTACK | INT_STATUS_WAS_ATTACKED | INT_STATUS_INTERACTED
+        proj.oAction = 1
+    else
+        general_hit_disallow(proj, target)
+    end
 end
 local function fire_hit_bowser(proj, target)
     local oBowser = target.parentObj
@@ -175,7 +186,7 @@ local function bubble_hit_generic_loot_coins(proj, target)
         if target.header.gfx.scale.y <= 0.5 then
             return
         elseif target.header.gfx.scale.y > 1.5 then
-            proj.oAction = -1
+            general_hit_disallow(proj, target)
         else
             obj_mark_for_deletion(target)
         end
@@ -223,6 +234,28 @@ local function bubble_hit_box(proj, target)
     spawn_visual_coins(proj, proj.oNumLootCoins)
     obj_mark_for_deletion(target)
 end
+local function bubble_hit_snowman(proj, target)
+    local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
+    local m = get_mario_state_from_object(nearestMarioObject)
+    target.oFaceAngleRoll = 0x3000
+    target.oMrBlizzardHeldObj = nil
+    target.prevObj = target.oMrBlizzardHeldObj
+    if target.oAnimState ~= 0 then
+        save_file_clear_flags(SAVE_FLAG_CAP_ON_MR_BLIZZARD);
+
+        spawn_non_sync_object(id_bhvNormalCap, E_MODEL_MARIOS_CAP, target.oPosX, target.oPosY, target.oPosZ, function(cap)
+            cap.oFaceAngleYaw = target.oFaceAngleYaw
+            cap.oForwardVel = 0
+            cap.oVelY = 30
+        end)
+
+        -- Mr. Blizzard no longer spawns with Mario's cap on.
+        target.oAnimState = 0
+    end
+    spawn_mist_particles_with_sound(SOUND_ACTION_SWIM_FAST)
+    spawn_powerup_from_bhv(m, target, 0, 15, target.oFaceAngleYaw, proj)
+    obj_mark_for_deletion(target)
+end
 
 projectileHitInteracts = {
     [id_bhvGoomba] = {
@@ -259,6 +292,7 @@ projectileHitInteracts = {
         [POWERUP_FIRE] = fire_hit_generic,
         [POWERUP_ICE] = ice_hit_genertic_freeze,
         [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = fire_hit_generic,
     },
     [id_bhvMerryGoRoundBoo] = {
         [POWERUP_FIRE] = fire_hit_generic,
@@ -267,22 +301,22 @@ projectileHitInteracts = {
         [POWERUP_GOLD] = fire_hit_generic,
     },
     [id_bhvGhostHuntBigBoo] = {
-        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_FIRE] = fire_hit_boo_boss,
         [POWERUP_ICE] = general_hit_disallow,
         [POWERUP_BUBBLE] = nil,
-        [POWERUP_GOLD] = fire_hit_generic,
+        [POWERUP_GOLD] = fire_hit_boo_boss,
     },
     [id_bhvBalconyBigBoo] = {
-        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_FIRE] = fire_hit_boo_boss,
         [POWERUP_ICE] = general_hit_disallow,
         [POWERUP_BUBBLE] = nil,
-        [POWERUP_GOLD] = fire_hit_generic,
+        [POWERUP_GOLD] = fire_hit_boo_boss,
     },
     [id_bhvMerryGoRoundBigBoo] = {
-        [POWERUP_FIRE] = fire_hit_generic,
+        [POWERUP_FIRE] = fire_hit_boo_boss,
         [POWERUP_ICE] = general_hit_disallow,
         [POWERUP_BUBBLE] = nil,
-        [POWERUP_GOLD] = fire_hit_generic,
+        [POWERUP_GOLD] = fire_hit_boo_boss,
     },
     [id_bhvFlyingBookend] = {
         [POWERUP_FIRE] = fire_hit_generic,
@@ -389,7 +423,7 @@ projectileHitInteracts = {
     [id_bhvMrBlizzard] = {
         [POWERUP_FIRE] = fire_hit_snowman,
         [POWERUP_ICE] = general_hit_disallow,
-        [POWERUP_BUBBLE] = general_hit_disallow,
+        [POWERUP_BUBBLE] = bubble_hit_snowman,
         [POWERUP_GOLD] = fire_hit_snowman,
     },
     [id_bhvHeaveHo] = {
@@ -467,5 +501,29 @@ projectileHitInteracts = {
             target.oAction = 8;
             proj.oAction = 1
         end,
+    },
+    [id_bhvThwomp] = {
+        [POWERUP_FIRE] = nil,
+        [POWERUP_ICE] = nil,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = function(proj, target)
+            obj_spawn_loot_yellow_coins(target, 10, 20)
+            spawn_triangle_break_particles(20, 138, 3.0, 4);
+            play_sound_with_freq_scale(SOUND_OBJ_THWOMP, target.header.gfx.cameraToObject, 0.8)
+            obj_mark_for_deletion(target)
+            proj.oAction = 1
+        end
+    },
+    [id_bhvThwomp2] = {
+        [POWERUP_FIRE] = nil,
+        [POWERUP_ICE] = nil,
+        [POWERUP_BUBBLE] = nil,
+        [POWERUP_GOLD] = function(proj, target)
+            obj_spawn_loot_yellow_coins(target, 10, 20)
+            spawn_triangle_break_particles(20, 138, 3.0, 4);
+            play_sound_with_freq_scale(SOUND_OBJ_THWOMP, target.header.gfx.cameraToObject, 0.8)
+            obj_mark_for_deletion(target)
+            proj.oAction = 1
+        end
     },
 }

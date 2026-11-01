@@ -110,11 +110,9 @@ local function mario_update(m)
             m.marioBodyState.modelState = m.marioBodyState.modelState & ~MODEL_STATE_NOISE_ALPHA
         end
     elseif s.powerupFlags then
-        if (s.powerupFlags > 0 and s.powerupFlags < 6) or s.powerupFlags == POWERUP_METAL or s.powerupFlags == POWERUP_MASTER then
+        if (s.powerupFlags > 0 and s.powerupFlags < 6) or s.powerupFlags == POWERUP_METAL then
             if pu and pu.col then
-                if e.masterCapRunning then
-                    network_player_set_override_palette_color(np, CAP, {r = e.playerR, g = e.playerG, b = e.playerB})
-                elseif isToad then -- i hate this little bitch for his palette slots
+                if isToad then -- i hate this little bitch for his palette slots
                     local toadCol = pu.col[CAP]
                     if s.powerupFlags == POWERUP_FIRE then
                         toadCol = {r = 255, g = 0, b = 0}
@@ -159,22 +157,27 @@ local function mario_update(m)
         --         m.marioBodyState.modelState = m.marioBodyState.modelState & ~MODEL_STATE_NOISE_ALPHA
         --     end
         -- else
-        if m.action ~= ACT_END_PEACH_CUTSCENE and m.action ~= ACT_JUMBO_STAR_CUTSCENE then
-            if charSelectExists and charSelect.is_menu_open() then
+        if m.action ~= ACT_END_PEACH_CUTSCENE and m.action ~= ACT_JUMBO_STAR_CUTSCENE and gNetworkPlayers[0].currActNum ~= 99 then
+            if _G.charSelectExists and charSelect.is_menu_open() then
                 e.displayPowerup = false
                 if e.CSmenuCheck then
                     network_player_reset_override_palette(np)
                     e.CSmenuCheck = false
                 end
-            elseif s.capTimer2 < 1 and gNetworkPlayers[0].currActNum ~= 99 then
+            end
+
+            if s.capTimer2 < 1 then -- fix this
+                s.powerupFlags = 0
+                m.flags = m.flags & ~MARIO_WING_CAP
+                m.flags = m.flags & ~MARIO_VANISH_CAP
+                m.flags = m.flags & ~MARIO_METAL_CAP
                 network_player_reset_override_palette(np)
                 spawn_mist_particles_with_sound(SOUND_MENU_ENTER_PIPE)
                 if e.displayPowerup then
                     e.displayPowerup = false
                 end
-                s.powerupFlags = 0
             elseif ((e.powerupStartTimer > 0 and (e.powerupStartTimer % frameSkip) == 0)
-            or (s.capTimer2 < 90 and (m.flags & MARIO_WING_CAP == 0 or m.flags & MARIO_METAL_CAP ~= 0)) and (s.capTimer2 % frameSkip) == 0) then
+            or (s.capTimer2 < 90) and (s.capTimer2 % frameSkip) == 0) then
                 network_player_reset_override_palette(np)
                 e.displayPowerup = false
             elseif e.prevCharType ~= m.character.type then
@@ -191,6 +194,10 @@ local function mario_update(m)
         if charSelectExists and not charSelect.is_menu_open() then
             e.CSmenuCheck = true
         end
+        -- if e.powerupStartTimer == 18 then
+        --     set_sound_bank_override(0x25)
+        --     play_cap_music(SEQ_EVENT_POWERUP)
+        -- end
     end
 
     -- if (m.action == ACT_THROWING or m.action == ACT_AIR_THROW) and m.actionArg == ARG_THROW then
@@ -238,6 +245,11 @@ local function mario_update(m)
         end
     end
 
+    -- bettercoins compat
+    if betterCoins and m.flags & MARIO_METAL_CAP ~= 0 and m.flags & MARIO_WING_CAP ~= 0 and m.flags & MARIO_VANISH_CAP ~= 0 then
+        e.masterCapIsActive = true
+    end
+
     if m.playerIndex == 0 and e.powerupStored ~= 0 and e.powerupStored ~= nil and m.action & ACT_GROUP_CUTSCENE == 0 and (m.controller.buttonPressed & e.hudPocketInput ~= 0) then
         local spawnBhv = 0
         local spawnModel = E_MODEL_NONE
@@ -258,19 +270,24 @@ local function mario_update(m)
         e.powerupStored = 0
     end
 
-    if e.masterCapRunning then
+    if s.powerupFlags == POWERUP_METAL then
+        m.flags = m.flags | MARIO_METAL_CAP
+    elseif s.powerupFlags == POWERUP_VANISH then
+        m.flags = m.flags | MARIO_VANISH_CAP
+    elseif s.powerupFlags == POWERUP_WING then
+        m.flags = m.flags | MARIO_WING_CAP
+    end
+
+    if e.masterCapIsActive then
         s.capTimer2 = m.capTimer
-        s.powerupFlags = POWERUP_MASTER
-        do_master_cap_effect(m)
-        if m.capTimer < 1 and e.powerupStartTimer == 0 then
-            e.masterCapRunning = false
-            s.capTimer2 = 1
+        --s.powerupFlags = -4  -- idk why master cap hard sets s.powerupFlags to POWERUP_METAL (-3)
+        if s.capTimer2 > 1 then
+            do_master_cap_effect(m)
+            network_player_set_override_palette_color(np, CAP, {r = e.playerR, g = e.playerG, b = e.playerB})
+        else
+            e.masterCapIsActive = false
         end
-    elseif s.capTimer2 > 0 and s.powerupFlags ~= 0 then
-    -- and m.action ~= ACT_READING_AUTOMATIC_DIALOG
-    -- and m.action ~= ACT_READING_NPC_DIALOG
-    -- and m.action ~= ACT_READING_SIGN
-    -- and m.action ~= ACT_IN_CANNON then
+    elseif s.capTimer2 >= 1 then
         if m.action & ACT_FLAG_INTANGIBLE == 0 or m.action == ACT_PUTTING_ON_CAP then
             s.capTimer2 = s.capTimer2 - 1
         elseif m.flags & MARIO_METAL_CAP ~= 0 then
@@ -294,7 +311,9 @@ local function mario_set_action(m)
     end
 
     if m.action == ACT_JUMBO_STAR_CUTSCENE then
-        reset_on_warp()
+        s.capTimer2 = 0
+        e.displayPowerup = false
+        network_player_reset_override_palette(np)
     end
 end
 hook_event(HOOK_ON_SET_MARIO_ACTION, mario_set_action)
@@ -358,7 +377,9 @@ local function mario_interact(m, o, type)
     end
 
     if obj_has_behavior_id(o, id_bhvMasterCapBox) ~= 0 and o.oInteractStatus & INT_STATUS_WAS_ATTACKED ~= 0 then
-        play_sound(SOUND_MENU_EXIT_PIPE, m.marioObj.header.gfx.cameraToObject)
+        if s.capTimer2 > 0 then
+            s.capTimer2 = 1
+        end
     end
 
     if s.capTimer2 > 0 and type == INTERACT_COIN then
@@ -406,7 +427,7 @@ end
 hook_event(HOOK_ON_PLAY_SOUND, on_sound)
 
 function hazard_surface(m)
-    if m.flags & MARIO_VANISH_CAP ~= 0 then
+    if m.flags & MARIO_VANISH_CAP ~= 0 and m.floor.type ~= SURFACE_BURNING then
         return false
     end
 end

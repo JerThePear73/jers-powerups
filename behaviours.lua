@@ -150,7 +150,7 @@ local function bhv_general_powerup_loop(o)
 
     if obj_check_hitbox_overlap(m.marioObj, o) then
         if o.oBehParams ~= nil then
-            if s.powerupFlags == o.oBehParams or e.masterCapRunning then --and e.powerupStored ~= o.oBehParams then -- this doesn't sync properly for some reason so for now custom powerups will just always be stored.
+            if s.powerupFlags == o.oBehParams or e.masterCapIsActive then --and e.powerupStored ~= o.oBehParams then -- this doesn't sync properly for some reason so for now custom powerups will just always be stored.
                 store_powerup(m, o.oBehParams)
                 obj_mark_for_deletion(o)
                 return
@@ -670,7 +670,7 @@ local function bhv_powerup_item_box_loop(o)
     -- 14 = EXCLAMATION_BOX_BP_STAR_ACT_6
     -- 15 = EXCLAMATION_BOX_BP_END
 
-    local powerupToSpawn = not e.masterCapRunning and math.floor(get_network_area_timer() % #powerupData) + 1 or POWERUP_SHROOM -- math.random will be different for everyone, but in theory get_network_area_timer() should be the same for everybody but I had 1 instance of it spawning a fire and an ice flower. I might be schizophrenic tho
+    local powerupToSpawn = e.masterCapIsActive and POWERUP_SHROOM or math.floor(get_network_area_timer() % #powerupData) + 1 or POWERUP_SHROOM -- math.random will be different for everyone, but in theory get_network_area_timer() should be the same for everybody but I had 1 instance of it spawning a fire and an ice flower. I might be schizophrenic tho
 
     if (o.oBehParams2ndByte >= 4 and o.oBehParams2ndByte <= 9) and o.oBehParams2ndByte ~= 8 then
         if o.oAction == 3 then
@@ -684,18 +684,18 @@ local function bhv_powerup_item_box_loop(o)
 end
 hook_behavior(id_bhvExclamationBox, get_object_list_from_behavior(get_behavior_from_id(id_bhvExclamationBox)), false, nil, bhv_powerup_item_box_loop, "bhvExclamationBoxPowerup")
 
-if _G.betterCoins then
-local function bhv_powerup_master_cap_box(o)
-    local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
-    local m = get_mario_state_from_object(nearestMarioObject)
-    if not m then return end
-    local e = gPowerupStates[m.playerIndex]
-    local s = gPlayerSyncTable[m.playerIndex]
-    if o.oAction == 3 then
-        e.powerupStartTimer = 20
-        s.powerupFlags = POWERUP_MASTER
-        e.masterCapRunning = true
-    end
-end
-hook_behavior(id_bhvMasterCapBox, get_object_list_from_behavior(get_behavior_from_id(id_bhvMasterCapBox)), false, nil, bhv_powerup_master_cap_box, "bhvMasterCapBoxPowerup")
-end
+-- if _G.betterCoins then
+-- local function bhv_powerup_master_cap_box(o)
+--     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
+--     local m = get_mario_state_from_object(nearestMarioObject)
+--     if not m then return end
+--     local e = gPowerupStates[m.playerIndex]
+--     local s = gPlayerSyncTable[m.playerIndex]
+--     if o.oAction == 3 then
+--         e.powerupStartTimer = 20
+--         s.powerupFlags = POWERUP_MASTER
+--         e.masterCapRunning = true
+--     end
+-- end
+-- hook_behavior(id_bhvMasterCapBox, get_object_list_from_behavior(get_behavior_from_id(id_bhvMasterCapBox)), false, nil, bhv_powerup_master_cap_box, "bhvMasterCapBoxPowerup")
+-- end

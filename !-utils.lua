@@ -40,7 +40,6 @@ TEX_POWERUP_GOLD    = get_texture_info("jers_powerups_gold_flower")
 TEX_POWERUP_SHROOM  = get_texture_info("jers_powerups_super_mushroom")
 TEX_POWERUP_CLOUD   = get_texture_info("jers_powerups_cloud_flower")
 
-POWERUP_MASTER    = -4
 POWERUP_METAL     = -3
 POWERUP_VANISH    = -2
 POWERUP_WING      = -1
@@ -65,6 +64,7 @@ replaceStarSound = 0
 capCol = -1
 id_bhvMasterCapBox = get_id_from_behavior_name("bhvMasterCapBox")
 id_bhvShopkeeper = get_id_from_behavior_name("bhvShopkeeper")
+debugToggled = false
 
 --gLevelValues.hudCapTimer = 1
 
@@ -170,7 +170,7 @@ for i = 0, (MAX_PLAYERS - 1) do
         playerG = 0,
         playerB = 0,
         playerCapCol = {r = 0, g = 0, b = 0},
-        powerupStored = POWERUP_FIRE,--mod_storage_load_integer("pocket_item", 0),
+        powerupStored = mod_storage_load_integer("pocket_item", 0),
         powerupStartTimer = 0,
         --powerupFlags = 0,
         displayPowerup = false,
@@ -200,7 +200,7 @@ for i = 0, (MAX_PLAYERS - 1) do
             bubble = nil,
         },
         CSmenuCheck = true,
-        masterCapRunning = false,
+        masterCapIsActive = false,
     }
     gPlayerSyncTable[i].powerupFlags = 0
     gPlayerSyncTable[i].capTimer2 = 0
@@ -322,7 +322,7 @@ function spawn_visual_coins(parent, numCoins)
     end
 end
 
-function reset_on_warp(type, level, area)
+function on_warp(type, level, area)
     local m = gMarioStates[0]
     local e = gPowerupStates[m.playerIndex]
     local s = gPlayerSyncTable[m.playerIndex]
@@ -351,12 +351,14 @@ function reset_on_warp(type, level, area)
         e.powerupStartTimer = 20
         play_sound(SOUND_MENU_EXIT_PIPE, m.marioObj.header.gfx.cameraToObject)
     else
-        s.capTimer2 = 0
-        e.displayPowerup = false
-        network_player_reset_override_palette(np)
+        if s.powerupFlags == POWERUP_METAL then
+            play_cap_music(SEQ_EVENT_METAL_CAP)
+        elseif s.powerupFlags == POWERUP_WING or s.powerupFlags == POWERUP_VANISH then
+            play_cap_music(SEQ_EVENT_POWERUP)
+        end
     end
 end
-hook_event(HOOK_ON_WARP, reset_on_warp)
+hook_event(HOOK_ON_WARP, on_warp)
 
 function do_master_cap_effect(m)
     local e = gPowerupStates[m.playerIndex]
@@ -385,27 +387,27 @@ end
 
 -- oins shop
 if _G.betterCoins then
-    for i=1, 3 do
-        local pu = powerupData[0 - i]
-        _G.betterCoins.add_shop_item({
-            name = pu.string,
-            key = pu.key,
-            texture = pu.tex,
-            description = "You want a "..pu.string.."? \n\nIt's yours my friend.",
-            coins = pu.cost,
-            interact = function(item)
-                local m = gMarioStates[0]
-                local o = obj_get_nearest_object_with_behavior_id(m.marioObj, id_bhvShopkeeper)
-                spawn_sync_object(pu.bhv, pu.model, o.oPosX, o.oPosY + 100, o.oPosZ, function(cap)
-                    cap.oVelY = 25
-                    cap.oForwardVel = 3
-                    cap.oMoveAngleYaw = o.oFaceAngleYaw
-                    cap.oFaceAngleYaw = o.oFaceAngleYaw
-                end)
-                return true
-            end,
-        })
-    end
+    -- for i=1, 3 do    -- vanilla caps in shop
+    --     local pu = powerupData[0 - i]
+    --     _G.betterCoins.add_shop_item({
+    --         name = pu.string,
+    --         key = pu.key,
+    --         texture = pu.tex,
+    --         description = "You want a "..pu.string.."? \n\nIt's yours my friend.",
+    --         coins = pu.cost,
+    --         interact = function(item)
+    --             local m = gMarioStates[0]
+    --             local o = obj_get_nearest_object_with_behavior_id(m.marioObj, id_bhvShopkeeper)
+    --             spawn_sync_object(pu.bhv, pu.model, o.oPosX, o.oPosY + 100, o.oPosZ, function(cap)
+    --                 cap.oVelY = 25
+    --                 cap.oForwardVel = 3
+    --                 cap.oMoveAngleYaw = o.oFaceAngleYaw
+    --                 cap.oFaceAngleYaw = o.oFaceAngleYaw
+    --             end)
+    --             return true
+    --         end,
+    --     })
+    -- end
     for i=1, #powerupData do
         local pu = powerupData[i]
         _G.betterCoins.add_shop_item({
@@ -416,12 +418,16 @@ if _G.betterCoins then
             coins = pu.cost,
             interact = function(item)
                 local m = gMarioStates[0]
-                local o = obj_get_nearest_object_with_behavior_id(m.marioObj, id_bhvShopkeeper)
-                spawn_powerup_manual(o.oPosX, o.oPosY + 100, o.oPosZ, 3, 25, o.oFaceAngleYaw, i, nil)
+                --local o = obj_get_nearest_object_with_behavior_id(m.marioObj, id_bhvShopkeeper)
+                --spawn_powerup_manual(o.oPosX, o.oPosY + 100, o.oPosZ, 3, 25, o.oFaceAngleYaw, i, nil)
+                store_powerup(m, i)
                 return true
             end,
         })
     end
+    
+    -- local levelNum, levelData = _G.betterCoins.master_cap_get_level()
+    -- gPowerupStates[gMarioStates[0].playerIndex].masterCapIsActive = levelData.runActive == 1
 end
 
 -- this is old starman code, figure out what to do with it or smth
