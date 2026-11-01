@@ -416,10 +416,17 @@ if _G.betterCoins then
             texture = pu.tex,
             description = "You want a "..pu.string.."? \n\nIt's yours my friend.",
             coins = pu.cost,
+            before_interact = function(item)
+                local m = gMarioStates[0]
+                local e = gPowerupStates[m.playerIndex]
+                if i == e.powerupStored then
+                    return false
+                else
+                    return true
+                end
+            end,
             interact = function(item)
                 local m = gMarioStates[0]
-                --local o = obj_get_nearest_object_with_behavior_id(m.marioObj, id_bhvShopkeeper)
-                --spawn_powerup_manual(o.oPosX, o.oPosY + 100, o.oPosZ, 3, 25, o.oFaceAngleYaw, i, nil)
                 store_powerup(m, i)
                 return true
             end,
