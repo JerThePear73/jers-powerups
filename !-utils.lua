@@ -53,6 +53,7 @@ POWERUP_CLOUD     = 6
 POWERUP_PROPELLER = 7
 POWERUP_SHELL     = 8
 POWERUP_STAR      = 9
+POWERUP_MAX       = 10 -- Max range of powerups for iterating
 
 powerupDespawnTime = 15*30
 fireballLifetime = 100
@@ -249,17 +250,36 @@ function store_powerup(m, pu)
     djui_hud_world_pos_to_screen_pos(m.pos, e.hudItemPos)
 end
 
----@param m MarioState
+---@param m MarioState? MarioState to determine powerup to give
+---@return integer
+function get_random_powerup_id(m)
+    m = m or gMarioStates[0]
+    local powerupID = nil
+    repeat
+        local randPower = math.random(1, POWERUP_MAX - 1)
+
+        -- Only give mush if low health
+        if randPower == POWERUP_SHROOM and m.health > 0x400 then
+            randPower = -1
+        end
+
+        if randPower ~= -1 then
+            powerupID = randPower
+        end
+    until powerupID
+    return powerupID
+end
+
 ---@param o Object Enemy to check the behavious id of
 ---@param velX number Powerup oForwardVel
 ---@param velY number Powerup oVelY
 ---@param angle number Powerup oMoveAngleYaw
 ---@param parent Object Object that the Powerup will be inside of
-function spawn_powerup_from_bhv(m, o, velX, velY, angle, parent)
+function spawn_powerup_from_bhv(o, velX, velY, angle, parent)
     if o == nil then return end
     for bhv, powerType in pairs(enemyDrops) do
         if obj_has_behavior_id(o, bhv) ~= 0 then
-            if m.playerIndex == 0 then
+            if sync_object_is_owned_locally(o.oSyncID) then
                 spawn_sync_object(id_bhvGeneralPowerup, E_MODEL_NONE, o.oPosX, o.oPosY + 200, o.oPosZ, function(pu)
                     pu.oForwardVel      = velX
                     pu.oVelY            = velY
@@ -287,8 +307,9 @@ end
 ---@param velY number Powerup oVelY
 ---@param angle number Powerup oMoveAngleYaw
 ---@param type integer Powerup oBehParams
----@param sound ModAudio Powerup spawn audio sample
+---@param sound ModAudio? Powerup spawn audio sample
 function spawn_powerup_manual(x, y, z, velX, velY, angle, type, sound)
+    type = type or POWERUP_SHROOM
     local bhv = type == POWERUP_SHROOM and id_bhvShroom or id_bhvGeneralPowerup
     spawn_sync_object(bhv, E_MODEL_NONE, x, y, z, function(pu)
         pu.oForwardVel      = velX
