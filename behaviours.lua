@@ -93,9 +93,7 @@ local function bhv_general_powerup_loop(o)
     local e = gPowerupStates[m.playerIndex]
     local s = gPlayerSyncTable[m.playerIndex]
 
-    if o.oBehParams >= 1 and o.oBehParams <= 4 then
-        smlua_anim_util_set_animation(o, "jers_powerups_anim_flower_dance")
-    end
+    smlua_anim_util_set_animation(o, "jers_powerups_anim_flower_dance")
 
     local step = object_step_without_floor_orient()
     if step & OBJ_COL_FLAG_GROUNDED ~= 0 then
