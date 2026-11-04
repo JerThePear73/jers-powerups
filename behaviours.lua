@@ -289,14 +289,16 @@ local function bhv_projectile_init(o)
     o.oCapUnkF4             = 0
     cur_obj_become_tangible()
 end
+
+local projData = {
+    [POWERUP_FIRE] = {model = E_MODEL_POWERUP_FIREBALL, trail = E_MODEL_RED_FLAME,          spawnSound = SOUND_POWERUP_FIRE_SHOOT,  deathSound = SOUND_POWERUP_FIRE_DEATH,  hitSound = SOUND_POWERUP_FIRE_HIT,      lifetime = fireballLifetime},
+    [POWERUP_ICE]  = {model = E_MODEL_POWERUP_ICEBALL,  trail = E_MODEL_POWERUP_SNOWFLAKE,  spawnSound = SOUND_POWERUP_ICE_SHOOT,   deathSound = SOUND_POWERUP_ICE_DEATH,   hitSound = SOUND_POWERUP_ICE_FREEZE,    lifetime = iceballLifetime},
+    [POWERUP_GOLD] = {model = E_MODEL_POWERUP_GOLDBALL, trail = E_MODEL_SPARKLES_ANIMATION, spawnSound = SOUND_POWERUP_GOLD_SHOOT,  deathSound = SOUND_POWERUP_FIRE_DEATH,  hitSound = SOUND_POWERUP_GOLD_HIT,      lifetime = goldballLifetime},
+}
+
 local function bhv_projectile_loop(o)
     local puType = o.oBehParams
     local isIceball = puType == POWERUP_ICE
-    local projData = {
-        [POWERUP_FIRE] = {model = E_MODEL_POWERUP_FIREBALL, trail = E_MODEL_RED_FLAME,          spawnSound = SOUND_POWERUP_FIRE_SHOOT,  deathSound = SOUND_POWERUP_FIRE_DEATH,  hitSound = SOUND_POWERUP_FIRE_HIT,      lifetime = fireballLifetime},
-        [POWERUP_ICE]  = {model = E_MODEL_POWERUP_ICEBALL,  trail = E_MODEL_POWERUP_SNOWFLAKE,  spawnSound = SOUND_POWERUP_ICE_SHOOT,   deathSound = SOUND_POWERUP_ICE_DEATH,   hitSound = SOUND_POWERUP_ICE_FREEZE,    lifetime = iceballLifetime},
-        [POWERUP_GOLD] = {model = E_MODEL_POWERUP_GOLDBALL, trail = E_MODEL_SPARKLES_ANIMATION, spawnSound = SOUND_POWERUP_GOLD_SHOOT,  deathSound = SOUND_POWERUP_FIRE_DEATH,  hitSound = SOUND_POWERUP_GOLD_HIT,      lifetime = goldballLifetime},
-    }
 
     if o.oTimer == 1 then
         audio_sample_play(projData[puType].spawnSound, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}, pause_check())
@@ -414,18 +416,34 @@ local function bhv_icecube_init(o)
     obj_set_model_extended(o, E_MODEL_POWERUP_ICECUBE)
 
     spawn_visual_coins(o, 3)
+    network_init_object(o, true, {
+        "oAction",
+    })
 end
+
 local function bhv_icecube_loop(o)
     local icecubeDurr = iceballLifetime * 4
     load_object_collision_model()
+
+    local m = get_mario_state_from_object(o.usingObj)
+    if m then
+        m.marioObj.header.gfx.pos.y = o.oPosY + 50
+        m.marioObj.header.gfx.animInfo.animFrame = 0
+        m.marioObj.header.gfx.animInfo.animAccel = 0
+        m.marioObj.header.gfx.animInfo.animFrameAccelAssist = 0
+    elseif o.globalPlayerIndex ~= 0 then
+        o.usingObj = gMarioStates[network_local_index_from_global(o.globalPlayerIndex - 1)].marioObj
+    end
 
     if cur_obj_was_attacked_or_ground_pounded() ~= 0 then
         o.oInteractStatus = o.oInteractStatus | INT_STATUS_WAS_ATTACKED
     elseif o.oTimer >= icecubeDurr then
         o.oAction = -1
+        network_send_object(o, true)
     end
-    if o.oInteractStatus == INT_STATUS_WAS_ATTACKED then
+    if o.oInteractStatus & INT_STATUS_WAS_ATTACKED ~= 0 then
         o.oAction = -1
+        network_send_object(o, true)
     end
 
     if o.oAction == -1 then
@@ -435,7 +453,10 @@ local function bhv_icecube_loop(o)
         if o.oTimer < icecubeDurr and o.oNumLootCoins == 3 then
             obj_spawn_loot_yellow_coins(o, 3, 0)
         end
-        o.activeFlags = ACTIVE_FLAG_DEACTIVATED
+        if m then
+            set_mario_action(m, ACT_FREEFALL, 0)
+        end
+        obj_mark_for_deletion(o)
     end
 
     if o.oTimer > icecubeDurr - 30 then
@@ -445,12 +466,8 @@ local function bhv_icecube_loop(o)
             cur_obj_unhide()
         end
     end
-
-    if o.activeFlags == ACTIVE_FLAG_DEACTIVATED then
-        o.oNumLootCoins = 0
-        obj_mark_for_deletion(o)
-    end
 end
+
 id_bhvIceCube = hook_behavior(nil, OBJ_LIST_SURFACE, true, bhv_icecube_init, bhv_icecube_loop, "bhvIceCube")
 
 ---@param o Object

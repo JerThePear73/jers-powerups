@@ -110,6 +110,32 @@ local function fire_hit_bowser(proj, target)
     obj_mark_for_deletion(proj)
 end
 
+---@param proj Object
+---@param target Object
+local function fire_hit_mario(proj, target)
+    local m = get_mario_state_from_object(target)
+    if not m then return end
+    if network_local_index_from_global(proj.globalPlayerIndex) == m.playerIndex then return end
+
+    if m.action == ACT_BUBBLED then
+        mario_pop_bubble(m)
+        proj.oAction = -1
+        return
+    end
+
+    if gServerSettings.playerInteractions == PLAYER_INTERACTIONS_NONE then return end
+    if is_player_active(m) == 0 or m.invincTimer ~= 0 then return end
+
+    if m.action & (ACT_FLAG_INTANGIBLE | ACT_FLAG_INVULNERABLE) == 0 then
+        if gServerSettings.playerInteractions == PLAYER_INTERACTIONS_PVP then
+            m.hurtCounter = 4
+        end
+        m.faceAngle.y = proj.oMoveAngleYaw + 0x8000
+        set_mario_action(m, ACT_BACKWARD_AIR_KB, 0)
+        proj.oAction = -1
+        return
+    end
+end
 
 local function ice_hit_genertic_freeze(proj, target)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(target, id_bhvMario)
@@ -180,6 +206,38 @@ local function ice_hit_goomba_or_koopa_freeze(proj, target)
     obj_mark_for_deletion(target)
 end
 
+---@param proj Object
+---@param target Object
+local function ice_hit_mario_freeze(proj, target)
+    local m = get_mario_state_from_object(target)
+    if not m then return end
+    if network_local_index_from_global(proj.globalPlayerIndex) == m.playerIndex then return end
+
+    if m.action == ACT_BUBBLED then
+        mario_pop_bubble(m)
+        proj.oAction = -1
+        return
+    end
+
+    if gServerSettings.playerInteractions == PLAYER_INTERACTIONS_NONE then return end
+    if is_player_active(m) == 0 or m.invincTimer ~= 0 then return end
+
+    if m.action & (ACT_FLAG_INTANGIBLE | ACT_FLAG_INVULNERABLE) == 0 then
+        if m.playerIndex == 0 then
+            local oCube = spawn_sync_object(id_bhvIceCube, E_MODEL_NONE, target.oPosX, target.oPosY, target.oPosZ, function(cube)
+                cube.usingObj = m.marioObj
+                cube.globalPlayerIndex = network_global_index_from_local(0) + 1
+                cube.oInteractStatus = INT_STATUS_GRABBED_MARIO
+                cube.oMoveAngleYaw = m.faceAngle.y
+                obj_scale(cube, target.header.gfx.scale.y)
+            end)
+            m.heldByObj = oCube
+            set_mario_action(m, ACT_GRABBED, 0)
+        end
+        proj.oAction = -1
+        return
+    end
+end
 
 local function bubble_hit_generic_loot_coins(proj, target)
     if (obj_has_behavior_id(target, id_bhvGoomba) ~= 0) then
@@ -258,6 +316,10 @@ local function bubble_hit_snowman(proj, target)
 end
 
 projectileHitInteracts = {
+    [id_bhvMario] = {
+        [POWERUP_FIRE] = fire_hit_mario,
+        [POWERUP_ICE] = ice_hit_mario_freeze,
+    },
     [id_bhvGoomba] = {
         [POWERUP_FIRE] = fire_hit_generic,
         [POWERUP_ICE] = ice_hit_goomba_or_koopa_freeze,
