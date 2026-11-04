@@ -200,37 +200,6 @@ local function mario_update(m)
         -- end
     end
 
-    -- if (m.action == ACT_THROWING or m.action == ACT_AIR_THROW) and m.actionArg == ARG_THROW then
-    --     local soundFrame = m.action == ACT_THROWING and 5 or -1
-
-    --     if m.action == ACT_AIR_THROW then
-    --         if (m.pos.y - m.floorHeight) < (m.vel.y * -1) + 1 and m.vel.y < 0 then
-    --             set_mario_action(m, ACT_FREEFALL_LAND, 0)
-    --         end
-    --         if m.input & INPUT_Z_PRESSED ~= 0 then
-    --             set_mario_action(m, ACT_GROUND_POUND, 0)
-    --         end
-    --     end
-
-    --     if mario_powerup_throw_type and s.capTimer2 > 7 then
-    --         if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
-    --             play_character_sound(m, s.powerupFlags ~= 0 and CHAR_SOUND_PUNCH_HOO)
-    --             if s.powerupFlags == POWERUP_BUBBLE then
-    --                 spawn_bubble_projectile(m, m.faceAngle.y)
-    --             else
-    --                 spawn_fire_or_ice_ball(m, s.powerupFlags, m.faceAngle.y)
-    --             end
-    --         end
-    --         if m.action ~= ACT_THROWING or m.actionTimer < 15 then
-    --             m.marioBodyState.handState = MARIO_HAND_RIGHT_OPEN
-    --         end
-    --     else
-    --         if m.marioObj.header.gfx.animInfo.animFrame == soundFrame then
-    --             play_character_sound(m, s.powerupFlags ~= 0 and CHAR_SOUND_DOH)
-    --         end
-    --     end
-    -- end
-
     -- evilswag moveset compat
     if mario_powerup_throw_type and s.capTimer2 > 5 then
         if m.action == ACT_SIDE_FLIP and m.actionArg == 73 and (m.actionTimer == 5 or m.actionTimer == 7) then
@@ -341,19 +310,6 @@ local function mario_interact(m, o, type)
     local e = gPowerupStates[m.playerIndex]
     local s = gPlayerSyncTable[m.playerIndex]
     local np = gNetworkPlayers[m.playerIndex]
-
-    -- if obj_has_behavior_id(o, id_bhvExclamationBox) ~= 0 and o.oExclamationBoxUnkF4 < 0.5 then
-    --     spawn_sync_object(id_bhvGeneralPowerup, E_MODEL_NONE, o.oPosX, o.oPosY + 100, o.oPosZ, function(pu)
-    --         pu.oMoveAngleYaw = o.oFaceAngleYaw
-    --         pu.oVelY = 30
-    --         pu.oBehParams = math.random(1, 2)
-    --     end)
-    -- end
-    -- if obj_has_behavior_id(o, id_bhvMetalCap) ~= 0
-    -- or obj_has_behavior_id(o, id_bhvWingCap) ~= 0
-    -- or obj_has_behavior_id(o, id_bhvVanishCap) ~= 0 then
-    --     s.powerupFlags = 0
-    -- end
 
     for bhv in pairs(vanillaPowerups) do
         if obj_has_behavior_id(o, bhv) ~= 0 then
