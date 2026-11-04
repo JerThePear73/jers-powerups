@@ -372,7 +372,7 @@ local function mario_interact(m, o, type)
 
     if (o.oInteractStatus & INT_STATUS_WAS_ATTACKED ~= 0 and m.action ~= ACT_TWIRLING) then
         if obj_has_behavior_id(o, id_bhvMoneybag) == 0 or o.oAction ~= MONEYBAG_ACT_DEATH then -- Moneybags sometimes spawns 2 flowers, this fixes it
-            spawn_powerup_from_bhv(m, o, 0, 15, o.oFaceAngleYaw, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
+            spawn_powerup_from_bhv(o, 0, 15, o.oFaceAngleYaw, nil, SOUND_GENERAL_GRAND_STAR_JUMP)
         end
     end
 

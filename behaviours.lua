@@ -639,7 +639,7 @@ local function bhv_powerup_snowman_loop(o)
     local nearestMarioObject = obj_get_nearest_object_with_behavior_id(o, id_bhvMario)
     local m = get_mario_state_from_object(nearestMarioObject)
     if o.oAction == MR_BLIZZARD_ACT_DEATH and o.oTimer == 63 and math.abs(o.oFaceAngleRoll) == 0x4000 then
-        spawn_powerup_from_bhv(m, o, 0, 15, o.oFaceAngleYaw, nil)
+        spawn_powerup_from_bhv(o, 0, 15, o.oFaceAngleYaw, nil)
     end
 end
 hook_behavior(id_bhvMrBlizzard, get_object_list_from_behavior(get_behavior_from_id(id_bhvMrBlizzard)), false, nil, bhv_powerup_snowman_loop, "bhvMrBlizzardPowerup")
@@ -668,14 +668,21 @@ local function bhv_powerup_item_box_loop(o)
     -- 14 = EXCLAMATION_BOX_BP_STAR_ACT_6
     -- 15 = EXCLAMATION_BOX_BP_END
 
-    local powerupToSpawn = e.masterCapIsActive and POWERUP_SHROOM or math.floor(get_network_area_timer() % #powerupData) + 1 or POWERUP_SHROOM -- math.random will be different for everyone, but in theory get_network_area_timer() should be the same for everybody but I had 1 instance of it spawning a fire and an ice flower. I might be schizophrenic tho
+    if sync_object_is_owned_locally(o.oSyncID) and (o.oBehParams2ndByte >= 4 and o.oBehParams2ndByte <= 9) and o.oBehParams2ndByte ~= 8 then
+        if o.oAction == 3 and o.oTimer == 6 then
+            local mouthsToFeed = {}
+            for i = 0, MAX_PLAYERS - 1 do
+                local m = gMarioStates[i]
+                if is_player_active(m) ~= 0 then -- and vec3f_dist(m.pos, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}) < 2000 then -- sorry squishy :(
+                    table.insert(mouthsToFeed, gMarioStates[i])
+                end
+            end
 
-    if (o.oBehParams2ndByte >= 4 and o.oBehParams2ndByte <= 9) and o.oBehParams2ndByte ~= 8 then
-        if o.oAction == 3 then
-            if o.oTimer == 5 then
-                o.oBehParams = powerupToSpawn
-            elseif o.oTimer == 6 then
-                spawn_powerup_manual(o.oPosX, o.oPosY, o.oPosZ, 5, 15, math.random(0, 0x10000), o.oBehParams, nil)
+            local faceAngle = nearest_mario_state_to_object(o).faceAngle.y
+            local puToSpawn = get_random_powerup_id(m) -- makes all powerups the same
+            for i, m in pairs(mouthsToFeed) do
+                local angle = faceAngle - 0x10000*(i/#mouthsToFeed)
+                spawn_powerup_manual(o.oPosX, o.oPosY, o.oPosZ, 5, 15, angle, (mixupToggled and math.random(1, #powerupData) or puToSpawn)) -- put random function here to make all powerups different
             end
         end
     end
