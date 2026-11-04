@@ -675,15 +675,16 @@ local function bhv_powerup_item_box_loop(o)
             local mouthsToFeed = {}
             for i = 0, MAX_PLAYERS - 1 do
                 local m = gMarioStates[i]
-                if is_player_active(m) ~= 0 and vec3f_dist(m.pos, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}) < 2000 then
+                if is_player_active(m) ~= 0 then -- and vec3f_dist(m.pos, {x = o.oPosX, y = o.oPosY, z = o.oPosZ}) < 2000 then -- sorry squishy :(
                     table.insert(mouthsToFeed, gMarioStates[i])
                 end
             end
 
             local faceAngle = nearest_mario_state_to_object(o).faceAngle.y
+            local puToSpawn = get_random_powerup_id(m) -- makes all powerups the same
             for i, m in pairs(mouthsToFeed) do
                 local angle = faceAngle - 0x10000*(i/#mouthsToFeed)
-                spawn_powerup_manual(o.oPosX, o.oPosY, o.oPosZ, 5, 15, angle, get_random_powerup_id(m))
+                spawn_powerup_manual(o.oPosX, o.oPosY, o.oPosZ, 5, 15, angle, (mixupToggled and math.random(1, #powerupData) or puToSpawn)) -- put random function here to make all powerups different
             end
         end
     end

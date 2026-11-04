@@ -52,8 +52,10 @@ POWERUP_SHROOM    = 5
 POWERUP_CLOUD     = 6
 POWERUP_PROPELLER = 7
 POWERUP_SHELL     = 8
-POWERUP_STAR      = 9
-POWERUP_MAX       = 10 -- Max range of powerups for iterating
+POWERUP_BOX_COIN  = 9
+POWERUP_BOX_FLY   = 10
+POWERUP_STAR      = 11
+POWERUP_MAX       = 12 -- Max range of powerups for iterating -- using this will try and pull unfinished powerups from the table and return nil, use #powerupData instead.
 
 powerupDespawnTime = 15*30
 fireballLifetime = 100
@@ -66,6 +68,7 @@ capCol = -1
 id_bhvMasterCapBox = get_id_from_behavior_name("bhvMasterCapBox")
 id_bhvShopkeeper = get_id_from_behavior_name("bhvShopkeeper")
 debugToggled = false
+mixupToggled = mod_storage_load_bool("mixup_mode", false)
 
 --gLevelValues.hudCapTimer = 1
 
@@ -256,7 +259,7 @@ function get_random_powerup_id(m)
     m = m or gMarioStates[0]
     local powerupID = nil
     repeat
-        local randPower = math.random(1, POWERUP_MAX - 1)
+        local randPower = math.random(1, #powerupData)
 
         -- Only give mush if low health
         if randPower == POWERUP_SHROOM and m.health > 0x400 then
@@ -457,6 +460,27 @@ if _G.betterCoins then
     -- local levelNum, levelData = _G.betterCoins.master_cap_get_level()
     -- gPowerupStates[gMarioStates[0].playerIndex].masterCapIsActive = levelData.runActive == 1
 end
+
+hook_chat_command("ep-debug", "- enable debug hud", function(msg)
+	debugToggled = not debugToggled
+	return true
+end)
+
+hook_chat_command("ep-mixup", "- toggles item box spawns to be identical or diverse for all players (host only)", function(msg)
+    if not network_is_server() then
+		djui_chat_message_create("\\#ffaaaa\\Only the host may use this command")
+	else
+	    if mixupToggled then
+			djui_chat_message_create("Powerups from boxes will now be \\#ff0\\the same \\#fff\\for all players!")
+			mixupToggled = false
+		else
+			djui_chat_message_create("Powerups from boxes will now be \\#ff0\\random \\#fff\\for all players!")
+			mixupToggled = true
+		end
+		mod_storage_save_bool("mixup_mode", mixupToggled)
+	end
+	return true
+end)
 
 -- this is old starman code, figure out what to do with it or smth
 

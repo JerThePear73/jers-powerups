@@ -103,9 +103,3 @@ for i=0, #pocketItemLayouts do
         mod_storage_save_integer("item_pos", e.hudPocketPos)
     end)
 end
-
-
-hook_chat_command("ep-debug", "- enable debug hud", function(msg)
-	debugToggled = not debugToggled
-	return true
-end)
