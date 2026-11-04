@@ -471,10 +471,10 @@ hook_chat_command("ep-mixup", "- toggles item box spawns to be identical or dive
 		djui_chat_message_create("\\#ffaaaa\\Only the host may use this command")
 	else
 	    if mixupToggled then
-			djui_chat_message_create("Powerups from boxes will now be \\#ff0\\the same \\#fff\\for all players!")
+            djui_popup_create_global("Powerups from boxes will now be\n\\#ff0\\the same \\#fff\\for all players!", 2)
 			mixupToggled = false
 		else
-			djui_chat_message_create("Powerups from boxes will now be \\#ff0\\random \\#fff\\for all players!")
+            djui_popup_create_global("Powerups from boxes will now be\n\\#ff0\\random \\#fff\\for all players!", 2)
 			mixupToggled = true
 		end
 		mod_storage_save_bool("mixup_mode", mixupToggled)
