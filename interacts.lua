@@ -119,7 +119,7 @@ local function fire_hit_mario(proj, target)
 
     if m.action == ACT_BUBBLED then
         mario_pop_bubble(m)
-        proj.oAction = -1
+        proj.oAction = 1
         return
     end
 
@@ -132,7 +132,7 @@ local function fire_hit_mario(proj, target)
         end
         m.faceAngle.y = proj.oMoveAngleYaw + 0x8000
         set_mario_action(m, ACT_BACKWARD_AIR_KB, 0)
-        proj.oAction = -1
+        proj.oAction = 1
         return
     end
 end
@@ -215,7 +215,7 @@ local function ice_hit_mario_freeze(proj, target)
 
     if m.action == ACT_BUBBLED then
         mario_pop_bubble(m)
-        proj.oAction = -1
+        proj.oAction = 1
         return
     end
 
@@ -234,7 +234,7 @@ local function ice_hit_mario_freeze(proj, target)
             m.heldByObj = oCube
             set_mario_action(m, ACT_GRABBED, 0)
         end
-        proj.oAction = -1
+        proj.oAction = 1
         return
     end
 end

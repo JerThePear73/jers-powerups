@@ -437,13 +437,10 @@ local function bhv_icecube_loop(o)
 
     if cur_obj_was_attacked_or_ground_pounded() ~= 0 then
         o.oInteractStatus = o.oInteractStatus | INT_STATUS_WAS_ATTACKED
-    elseif o.oTimer >= icecubeDurr then
-        o.oAction = -1
-        network_send_object(o, true)
     end
-    if o.oInteractStatus & INT_STATUS_WAS_ATTACKED ~= 0 then
+    if o.oTimer >= icecubeDurr or o.oInteractStatus & INT_STATUS_WAS_ATTACKED ~= 0 then
         o.oAction = -1
-        network_send_object(o, true)
+        --network_send_object(o, true)
     end
 
     if o.oAction == -1 then
