@@ -2,6 +2,7 @@
 local function spawn_fire_or_ice_ball(m, beh, angle)
     if m.playerIndex ~= 0 then return end
     spawn_sync_object(id_bhvFireOrIceball, E_MODEL_NONE, m.pos.x, m.pos.y + 100, m.pos.z, function(o)
+        o.globalPlayerIndex = network_global_index_from_local(m.playerIndex)
         o.oMoveAngleYaw = angle
         o.oVelY = 15
         o.oBehParams = beh
